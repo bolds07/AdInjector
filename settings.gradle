@@ -1,0 +1,2 @@
+include ':adinjector', 'slf4jcrashlytics'
+project (":slf4jcrashlytics").projectDir = new File(rootProject.projectDir,"../SL4JCrashlytics/sl4jcrashlytics")

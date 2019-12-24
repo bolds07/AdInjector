@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="action_logout" type="id" />
+    <item name="adview" type="id" />
+    <item name="busyAd" type="id" />
+</resources>
