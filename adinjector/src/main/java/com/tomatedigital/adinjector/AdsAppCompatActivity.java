@@ -2,12 +2,19 @@ package com.tomatedigital.adinjector;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Looper;
+import android.os.PersistableBundle;
+import android.preference.PreferenceManager;
+import android.provider.Settings;
 import android.util.DisplayMetrics;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -17,9 +24,11 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 
 import androidx.annotation.LayoutRes;
+import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.UiThread;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.LinearLayoutCompat;
 import androidx.core.app.ActivityCompat;
@@ -29,11 +38,15 @@ import com.crashlytics.android.Crashlytics;
 import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.reward.RewardItem;
+import com.google.android.gms.common.util.AndroidUtilsLight;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.tomatedigital.adinjector.handler.ResizableBannerAdHandler;
 import com.tomatedigital.adinjector.handler.RewardAdHandler;
 import com.tomatedigital.adinjector.listener.RewardAdListener;
+
+import java.util.HashSet;
+import java.util.Set;
 
 
 @SuppressWarnings("SameReturnValue")
@@ -42,7 +55,6 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
     private static final int CODE_REQUEST_GPS = 25471;
 
     private static final long MINIMUM_BUSY_TIME = 5500;
-    private static final int MINIMUM_BUSY_TIMES_FOR_REFRESH = 3;
     private static final long MAX_LOAD_AD_VIDEO_DURATION = 8000;
 
 
@@ -54,9 +66,9 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
 
     private AdView adView;
 
-    @SuppressLint("StaticFieldLeak")
-    private static ResizableBannerAdHandler busyHandler;
-    private static long busyAdStartDisplayAt;
+
+    private ResizableBannerAdHandler busyHandler;
+    private long busyAdStartDisplayAt;
 
 
     @SuppressLint("StaticFieldLeak")
@@ -69,6 +81,9 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
 
     @NonNull
     private static String[] keywords = new String[0];
+
+
+    private static Set<String> requestingPermissions = new HashSet<>();
 
     protected static void setKeywords(@NonNull String[] keys) {
         keywords = keys;
@@ -116,8 +131,6 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
     }
 
 
-
-
     @Override
     public void onRestoreInstanceState(@Nullable Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
@@ -141,6 +154,8 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
         if (this.adView != null)
             this.adView.destroy();
 
+        if (this.busyHandler != null)
+            this.busyHandler.destroy(this);
 
         super.onDestroy();
     }
@@ -151,7 +166,8 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
 
         if (this.adView != null)
             this.adView.pause();
-
+        if (this.busyHandler != null)
+            this.busyHandler.pause(this);
 
         if (rewardHandler != null)
             rewardHandler.pause(this);
@@ -166,16 +182,40 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
         if (this.adView != null)
             this.adView.resume();
 
-
+        if (this.busyHandler != null)
+            this.busyHandler.resume(this);
 
         if (rewardHandler != null)
             rewardHandler.resume(this);
     }
 
 
-    protected boolean unlockPermissions(@NonNull String permission, int requestorCode) {
+    protected boolean unlockPermissions(@NonNull final String permission, final int requestorCode, @Nullable final String explanationDialog) {
+
+
         if (Build.VERSION.SDK_INT > 18 && ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{permission}, requestorCode);
+            final String pref = "ask_" + permission.substring(Math.max(0, permission.lastIndexOf(".")));
+            final boolean alreadyAsked = PreferenceManager.getDefaultSharedPreferences(this).getBoolean(pref, false);
+            final boolean tmp = requestingPermissions.add(permission) || requestingPermissions.add(requestorCode+"");
+
+            if (!alreadyAsked) //todo this if can be removed and the statement put inside the next if 25/01
+                PreferenceManager.getDefaultSharedPreferences(this).edit().putBoolean(pref, true).apply();
+
+            if (Build.VERSION.SDK_INT > 23 && alreadyAsked && tmp && explanationDialog != null) {
+                runOnUiThread(() -> {
+                    new AlertDialog.Builder(this).setTitle(R.string.permission_necessary_to_continue).setMessage(explanationDialog).setCancelable(false).setPositiveButton(R.string.go_to_settings, (d, which) -> {
+                        Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                        Uri uri = Uri.fromParts("package", getPackageName(), null);
+                        intent.setData(uri);
+                        startActivityForResult(intent, requestorCode);
+                        requestingPermissions.remove(permission);
+
+                    }).show();
+                });
+            } else if (tmp) {
+                ActivityCompat.requestPermissions(this, new String[]{permission}, requestorCode);
+                requestingPermissions.remove(permission);
+            }
             return false;
         }
 
@@ -204,15 +244,59 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
 
     }
 
-    protected void setExtraContent() {
+    @Override
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
 
-
-        this.mainLayout = (ViewGroup) ((ViewGroup) this.findViewById(android.R.id.content)).getChildAt(0);
+        preInjectStuff();
 
         if (loc == null)
             loadGpsLocation();
-        injectStuff();
+
         createRewardHandler();
+    }
+
+    private void preInjectStuff() {
+
+        //create a new relative layout and inject at the main container
+        ViewGroup rootView = this.findViewById(android.R.id.content);
+        this.mainLayout = new RelativeLayout(this);
+
+
+        rootView.addView(this.mainLayout);
+        ViewGroup.LayoutParams layout = this.mainLayout.getLayoutParams();
+        layout.width = ViewGroup.LayoutParams.MATCH_PARENT;
+        layout.height = ViewGroup.LayoutParams.MATCH_PARENT;
+        this.mainLayout.setLayoutParams(layout);
+
+
+        //add the fade view
+        createBannerAd(this.mainLayout);
+
+        this.fadeView = (RelativeLayout) LayoutInflater.from(this).inflate(R.layout.busy_layout, this.mainLayout, false);
+
+        this.mainLayout.addView(this.fadeView);
+        layout = this.fadeView.getLayoutParams();
+        layout.width = ViewGroup.LayoutParams.MATCH_PARENT;
+        layout.height = ViewGroup.LayoutParams.MATCH_PARENT;
+        this.fadeView.setLayoutParams(layout);
+        this.fadeView.setVisibility(View.GONE);
+
+
+        injectBusyAd(this.fadeView);
+    }
+
+    protected void setExtraContent() {
+
+
+        //remove the main layout and add it to the new relative layout
+        ViewGroup rootView = this.findViewById(android.R.id.content);
+        View tmp = rootView.getChildAt(0);
+        rootView.removeViewAt(0);
+
+        rootView.addView(this.mainLayout);
+        this.mainLayout.addView(tmp, 0);
+        this.mainLayout = (ViewGroup) tmp;
 
         if (this.showBannerAd() && (this.mainLayout instanceof LinearLayoutCompat || this.mainLayout instanceof LinearLayout))
             this.mainLayout.getViewTreeObserver().addOnGlobalLayoutListener(this);
@@ -226,73 +310,21 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
     }
 
 
-    private void injectStuff() {
-
-
-        //remove the main layout and add it to the new relative layout
-        ViewGroup rootView = this.findViewById(android.R.id.content);
-        RelativeLayout relativeLayout = new RelativeLayout(this);
-
-        View oldMain = rootView.getChildAt(0);
-        rootView.removeViewAt(0);
-
-        rootView.addView(relativeLayout);
-        ViewGroup.LayoutParams layout = relativeLayout.getLayoutParams();
-        layout.width = ViewGroup.LayoutParams.MATCH_PARENT;
-        layout.height = ViewGroup.LayoutParams.MATCH_PARENT;
-        relativeLayout.setLayoutParams(layout);
-
-        relativeLayout.addView(oldMain);
-
-
-        //add the fade view
-        createBannerAd(relativeLayout);
-
-        this.fadeView = (RelativeLayout) LayoutInflater.from(this).inflate(R.layout.busy_layout, relativeLayout, false);
-
-        relativeLayout.addView(this.fadeView);
-        layout = this.fadeView.getLayoutParams();
-        layout.width = ViewGroup.LayoutParams.MATCH_PARENT;
-        layout.height = ViewGroup.LayoutParams.MATCH_PARENT;
-        this.fadeView.setLayoutParams(layout);
-        this.fadeView.setVisibility(View.GONE);
-
-
-        injectBusyAd(this.fadeView);
-
-
-    }
-
-
     private void injectBusyAd(@NonNull final RelativeLayout relativeLayout) {
 
-        if (this.showBusyAds()) {
+        //todo   if (this.showBusyAds()) {
+        AdView busyAd = new AdView(this);
+        busyAd.setAdSize(AdSize.MEDIUM_RECTANGLE);
+        busyAd.setAdUnitId(getBusyAdUnit());
+        busyAd.setId(R.id.busyAd);
 
-            if (busyHandler == null) {
-                AdView busyAd = new AdView(this);
-                busyAd.setAdSize(AdSize.MEDIUM_RECTANGLE);
-                busyAd.setAdUnitId(getBusyAdUnit());
-                busyAd.setId(R.id.busyAd);
+        relativeLayout.addView(busyAd);
+        RelativeLayout.LayoutParams layout = (RelativeLayout.LayoutParams) busyAd.getLayoutParams();
+        layout.addRule(RelativeLayout.CENTER_IN_PARENT);
+        busyHandler = new ResizableBannerAdHandler(busyAd, this.getBusyRefreshInterval(), keywords);
 
-                relativeLayout.addView(busyAd);
-                RelativeLayout.LayoutParams layout = (RelativeLayout.LayoutParams) busyAd.getLayoutParams();
-                layout.addRule(RelativeLayout.CENTER_IN_PARENT);
-
-                busyAd.loadAd(AdMobRequestUtil.buildAdRequest(loc, keywords).build());
-
-                busyHandler = new ResizableBannerAdHandler(busyAd, this.getBusyRefreshInterval(), keywords);
-            } else
-                busyHandler.changeContainer(relativeLayout);
-
-            busyHandler.hideAd();
-        }
-    }
-
-    private void loadBusyAd() {
-        if (busyHandler.getShownCount() > AdsAppCompatActivity.MINIMUM_BUSY_TIMES_FOR_REFRESH)
-            busyHandler.loadAd(this);
-
-
+        busyHandler.hideAd();
+        //}
     }
 
 
@@ -316,7 +348,6 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
             showBusyView(b);
 
         } else {
-
             AsyncTask.THREAD_POOL_EXECUTOR.execute(() -> {
                 while (System.currentTimeMillis() - busyAdStartDisplayAt < MINIMUM_BUSY_TIME) {
                     try {
@@ -326,7 +357,6 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
                 }
                 runOnUiThread(() -> showBusyView(false));
             });
-
         }
 
     }
@@ -348,10 +378,10 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
             if (this.fadeView != null)
                 this.fadeView.setVisibility(View.GONE);
 
-            if (this.showBusyAds()) {
+            if (this.showBusyAds())
                 busyHandler.hideAd();
-                loadBusyAd();
-            }
+
+
             if (adView != null) {
                 adView.setVisibility(View.VISIBLE);
                 adView.resume();
@@ -366,15 +396,14 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
             loadGpsLocation();
 
 
-        else
-            super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
     }
 
 
     @SuppressLint("MissingPermission")
     protected void loadGpsLocation() {
-        if (unlockPermissions(Manifest.permission.ACCESS_FINE_LOCATION, CODE_REQUEST_GPS) || unlockPermissions(Manifest.permission.ACCESS_COARSE_LOCATION, CODE_REQUEST_GPS))
+        if (unlockPermissions(Manifest.permission.ACCESS_FINE_LOCATION, CODE_REQUEST_GPS, null) || unlockPermissions(Manifest.permission.ACCESS_COARSE_LOCATION, CODE_REQUEST_GPS, null))
             LocationServices.getFusedLocationProviderClient(this).getLastLocation().addOnSuccessListener(this);
     }
 

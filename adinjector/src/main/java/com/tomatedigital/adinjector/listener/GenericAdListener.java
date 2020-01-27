@@ -33,6 +33,7 @@ public abstract class GenericAdListener extends AdListener {
     protected RewardItem lastReward;
 
 
+
     GenericAdListener(Context context, String adUnit, AdSize size) {
         this.adUnit = adUnit;
         this.context = context;
@@ -41,9 +42,9 @@ public abstract class GenericAdListener extends AdListener {
         this.status = AdStatus.EMPTY;
         this.triesFailed = 0;
         this.lastFailTimestamp = 0;
-        this.lastLoadTimestamp = System.currentTimeMillis();
+        this.lastLoadTimestamp = 0;
         this.clicks = 0;
-        Crashlytics.log(this.getClass().getName() + " created");
+
     }
 
     @NonNull

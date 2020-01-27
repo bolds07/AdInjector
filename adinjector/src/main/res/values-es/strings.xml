@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="loading">Cargando</string>
+    <string name="go_to_settings">Abrir configuraciones</string>
+    <string name="permission_necessary_to_continue">Permiso Requerido</string>
 </resources>
