@@ -2,17 +2,13 @@ package com.tomatedigital.adinjector;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Looper;
-import android.os.PersistableBundle;
 import android.preference.PreferenceManager;
 import android.provider.Settings;
 import android.util.DisplayMetrics;
@@ -24,7 +20,6 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 
 import androidx.annotation.LayoutRes;
-import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.UiThread;
@@ -38,7 +33,6 @@ import com.crashlytics.android.Crashlytics;
 import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.reward.RewardItem;
-import com.google.android.gms.common.util.AndroidUtilsLight;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.tomatedigital.adinjector.handler.ResizableBannerAdHandler;
@@ -196,12 +190,12 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
         if (Build.VERSION.SDK_INT > 18 && ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
             final String pref = "ask_" + permission.substring(Math.max(0, permission.lastIndexOf(".")));
             final boolean alreadyAsked = PreferenceManager.getDefaultSharedPreferences(this).getBoolean(pref, false);
-            final boolean tmp = requestingPermissions.add(permission) || requestingPermissions.add(requestorCode+"");
+            final boolean tmp = requestingPermissions.add(permission) || requestingPermissions.add(requestorCode + "");
 
             if (!alreadyAsked) //todo this if can be removed and the statement put inside the next if 25/01
                 PreferenceManager.getDefaultSharedPreferences(this).edit().putBoolean(pref, true).apply();
 
-            if (Build.VERSION.SDK_INT > 23 && alreadyAsked && tmp && explanationDialog != null) {
+            if (Build.VERSION.SDK_INT > 23 && alreadyAsked && tmp && explanationDialog != null && isValid()) {
                 runOnUiThread(() -> {
                     new AlertDialog.Builder(this).setTitle(R.string.permission_necessary_to_continue).setMessage(explanationDialog).setCancelable(false).setPositiveButton(R.string.go_to_settings, (d, which) -> {
                         Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
@@ -212,7 +206,7 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
 
                     }).show();
                 });
-            } else if (tmp) {
+            } else if (tmp && !isFinishing() && isDestroyed()) {
                 ActivityCompat.requestPermissions(this, new String[]{permission}, requestorCode);
                 requestingPermissions.remove(permission);
             }
@@ -221,6 +215,10 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
 
         return true;
 
+    }
+
+    public boolean isValid() {
+        return !this.isFinishing() && !(Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1 && this.isDestroyed());
     }
 
 
@@ -329,13 +327,15 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
 
 
     private void createBannerAd(@NonNull ViewGroup container) {
-        if (this.showBannerAd()) {
-            this.adView = new AdView(this);
-            this.adView.setId(R.id.adview);
-            this.adView.setAdUnitId(this.getBannerAdUnit());
-            container.addView(this.adView);
-        } else
-            this.adView = findViewById(R.id.adview);
+        //if (this.showBannerAd()) {
+        this.adView = new AdView(this);
+        this.adView.setId(R.id.adview);
+        this.adView.setAdUnitId(this.getBannerAdUnit());
+        container.addView(this.adView);
+        // } else
+        if (!this.showBannerAd())
+            this.adView.setVisibility(View.GONE);
+        //      this.adView = findViewById(R.id.adview);
 
 
     }
