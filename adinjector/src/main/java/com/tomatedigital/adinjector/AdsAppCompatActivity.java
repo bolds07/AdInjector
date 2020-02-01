@@ -184,7 +184,7 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
     }
 
 
-    protected boolean unlockPermissions(@NonNull final String permission, final int requestorCode, @Nullable final String explanationDialog) {
+    public boolean unlockPermissions(@NonNull final String permission, final int requestorCode, @Nullable final String explanationDialog) {
 
 
         if (Build.VERSION.SDK_INT > 18 && ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
@@ -244,17 +244,18 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-
         preInjectStuff();
 
         if (loc == null)
             loadGpsLocation();
 
         createRewardHandler();
+
+        super.onCreate(savedInstanceState);
     }
 
     private void preInjectStuff() {
+
 
         //create a new relative layout and inject at the main container
         ViewGroup rootView = this.findViewById(android.R.id.content);
