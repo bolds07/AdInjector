@@ -35,6 +35,7 @@ import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.reward.RewardItem;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.analytics.FirebaseAnalytics;
 import com.tomatedigital.adinjector.handler.ResizableBannerAdHandler;
 import com.tomatedigital.adinjector.handler.RewardAdHandler;
 import com.tomatedigital.adinjector.listener.RewardAdListener;
@@ -192,8 +193,6 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
             final boolean alreadyAsked = PreferenceManager.getDefaultSharedPreferences(this).getBoolean(pref, false);
             final boolean tmp = requestingPermissions.add(permission) || requestingPermissions.add(requestorCode + "");
 
-            if (!alreadyAsked) //todo this if can be removed and the statement put inside the next if 25/01
-                PreferenceManager.getDefaultSharedPreferences(this).edit().putBoolean(pref, true).apply();
 
             if (Build.VERSION.SDK_INT > 23 && alreadyAsked && tmp && explanationDialog != null && isValid()) {
                 runOnUiThread(() -> {
@@ -207,6 +206,7 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
                     }).show();
                 });
             } else if (tmp && !isFinishing() && isDestroyed()) {
+                PreferenceManager.getDefaultSharedPreferences(this).edit().putBoolean(pref, true).apply();
                 ActivityCompat.requestPermissions(this, new String[]{permission}, requestorCode);
                 requestingPermissions.remove(permission);
             }
