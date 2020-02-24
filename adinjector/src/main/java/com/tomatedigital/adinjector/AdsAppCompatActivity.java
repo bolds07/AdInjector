@@ -205,7 +205,7 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
 
                     }).show();
                 });
-            } else if (tmp && !isFinishing() && isDestroyed()) {
+            } else if (tmp && !isFinishing() && !isDestroyed()) {
                 PreferenceManager.getDefaultSharedPreferences(this).edit().putBoolean(pref, true).apply();
                 ActivityCompat.requestPermissions(this, new String[]{permission}, requestorCode);
                 requestingPermissions.remove(permission);
