@@ -9,7 +9,10 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
+
+import androidx.annotation.MainThread;
+import androidx.preference.PreferenceManager;
+
 import android.provider.Settings;
 import android.util.DisplayMetrics;
 import android.view.LayoutInflater;
@@ -35,7 +38,6 @@ import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.reward.RewardItem;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.firebase.analytics.FirebaseAnalytics;
 import com.tomatedigital.adinjector.handler.ResizableBannerAdHandler;
 import com.tomatedigital.adinjector.handler.RewardAdHandler;
 import com.tomatedigital.adinjector.listener.RewardAdListener;
@@ -213,6 +215,7 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
             return false;
         }
 
+
         return true;
 
     }
@@ -311,7 +314,7 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
 
     private void injectBusyAd(@NonNull final RelativeLayout relativeLayout) {
 
-        //todo   if (this.showBusyAds()) {
+
         AdView busyAd = new AdView(this);
         busyAd.setAdSize(AdSize.MEDIUM_RECTANGLE);
         busyAd.setAdUnitId(getBusyAdUnit());
@@ -323,7 +326,7 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
         busyHandler = new ResizableBannerAdHandler(busyAd, this.getBusyRefreshInterval(), keywords);
 
         busyHandler.hideAd();
-        //}
+
     }
 
 
@@ -342,8 +345,8 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
     }
 
 
-    @UiThread
-    protected void busy(boolean b) {
+    @MainThread
+    public void busy(boolean b) {
 
         if (b || !this.showBusyAds()) {
             showBusyView(b);
