@@ -9,10 +9,6 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
-
-import androidx.annotation.MainThread;
-import androidx.preference.PreferenceManager;
-
 import android.provider.Settings;
 import android.util.DisplayMetrics;
 import android.view.LayoutInflater;
@@ -23,19 +19,21 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 
 import androidx.annotation.LayoutRes;
+import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.UiThread;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.LinearLayoutCompat;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.preference.PreferenceManager;
 
 import com.crashlytics.android.Crashlytics;
 import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.reward.RewardItem;
+import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.tomatedigital.adinjector.handler.ResizableBannerAdHandler;
@@ -80,7 +78,7 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
     private static String[] keywords = new String[0];
 
 
-    private static Set<String> requestingPermissions = new HashSet<>();
+    private static final Set<String> requestingPermissions = new HashSet<>();
 
     protected static void setKeywords(@NonNull String[] keys) {
         keywords = keys;
@@ -407,8 +405,9 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
 
     @SuppressLint("MissingPermission")
     protected void loadGpsLocation() {
+        final FusedLocationProviderClient locationClient;
         if (unlockPermissions(Manifest.permission.ACCESS_FINE_LOCATION, CODE_REQUEST_GPS, null) || unlockPermissions(Manifest.permission.ACCESS_COARSE_LOCATION, CODE_REQUEST_GPS, null))
-            LocationServices.getFusedLocationProviderClient(this).getLastLocation().addOnSuccessListener(this);
+            (locationClient = LocationServices.getFusedLocationProviderClient(this)).getLastLocation().addOnSuccessListener(this);
     }
 
     private void injectBannerAd(int height) {
@@ -485,8 +484,6 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
     protected abstract boolean showBusyAds();
 
     protected abstract boolean showBannerAd();
-
-    protected abstract void addExtras(Intent i, Bundle savedInstanceState);
 
 
 }
