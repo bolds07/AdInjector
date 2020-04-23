@@ -1,6 +1,7 @@
 package com.tomatedigital.adinjector.handler;
 
 import android.content.Context;
+import android.util.Log;
 
 import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
@@ -66,7 +67,7 @@ public class RewardAdHandler extends AdHandler {
         this.interstitialAd.setImmersiveMode(true);
 
         this.loadAd(c);
-        Crashlytics.log("RewardAdHandler created");
+        Crashlytics.log(Log.DEBUG,"debug","RewardAdHandler created");
 
     }
 
@@ -127,11 +128,11 @@ public class RewardAdHandler extends AdHandler {
     public void showAd(RewardAdListener.VideoRewardListener rewardListener) {
 
         if (this.rewardedVideoAdListener.getStatus() == GenericAdListener.AdStatus.LOADED) {
-            Crashlytics.log("shown video ad: " + this.videoAdCount++);
+            Crashlytics.log(Log.DEBUG,"DEBUG","shown video ad: " + this.videoAdCount++);
             this.rewardedVideoAdListener.setOnVideoRewardListener(rewardListener);
             this.rewardedVideoAd.show();
         } else if (this.interstitialAdListener.getStatus() == GenericAdListener.AdStatus.LOADED) {
-            Crashlytics.log("shown interstitial ad: " + this.intertitialAdCount++);
+            Crashlytics.log(Log.DEBUG,"DEBUG","shown interstitial ad: " + this.intertitialAdCount++);
             this.interstitialAdListener.setOnVideoRewardListener(rewardListener);
             this.interstitialAd.show();
         }

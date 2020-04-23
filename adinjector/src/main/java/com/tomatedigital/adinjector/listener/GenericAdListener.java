@@ -2,6 +2,7 @@ package com.tomatedigital.adinjector.listener;
 
 import android.content.Context;
 import android.os.Bundle;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 
@@ -68,7 +69,7 @@ public abstract class GenericAdListener extends AdListener {
 
     @Override
     public void onAdLoaded() {
-        Crashlytics.log("ad: " + this.adUnit + " loaded");
+        Crashlytics.log(Log.DEBUG,"DEBUG","ad: " + this.adUnit + " loaded");
         this.triesFailed = 0;
         this.lastLoadTimestamp = System.currentTimeMillis();
         this.status = AdStatus.LOADED;
@@ -78,7 +79,7 @@ public abstract class GenericAdListener extends AdListener {
 
     @Override
     public void onAdClicked() {
-        Crashlytics.log("ad: " + this.adUnit + " clicked: " + this.clicks++);
+        Crashlytics.log(Log.DEBUG,"DEBUG","ad: " + this.adUnit + " clicked: " + this.clicks++);
         this.status = AdStatus.CLICKED;
 
     }
@@ -131,7 +132,7 @@ public abstract class GenericAdListener extends AdListener {
             sizeCode = 7;
 
         b.putInt("size", sizeCode);
-        Crashlytics.log("ad: " + this.adUnit + " failed to load: " + this.triesFailed + " code: " + i + " lastError: " + (System.currentTimeMillis()-this.lastFailTimestamp)/1000 + "sec ago");
+        Crashlytics.log(Log.VERBOSE,"DEBUG","ad: " + this.adUnit + " failed to load: " + this.triesFailed + " code: " + i + " lastError: " + (System.currentTimeMillis()-this.lastFailTimestamp)/1000 + "sec ago");
         FirebaseAnalytics.getInstance(this.context).logEvent("ad_failed_to_load", b);
     }
 

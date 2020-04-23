@@ -33,7 +33,6 @@ import com.crashlytics.android.Crashlytics;
 import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.reward.RewardItem;
-import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.tomatedigital.adinjector.handler.ResizableBannerAdHandler;
@@ -405,9 +404,9 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
 
     @SuppressLint("MissingPermission")
     protected void loadGpsLocation() {
-        final FusedLocationProviderClient locationClient;
+
         if (unlockPermissions(Manifest.permission.ACCESS_FINE_LOCATION, CODE_REQUEST_GPS, null) || unlockPermissions(Manifest.permission.ACCESS_COARSE_LOCATION, CODE_REQUEST_GPS, null))
-            (locationClient = LocationServices.getFusedLocationProviderClient(this)).getLastLocation().addOnSuccessListener(this);
+            LocationServices.getFusedLocationProviderClient(this).getLastLocation().addOnSuccessListener(this);
     }
 
     private void injectBannerAd(int height) {
