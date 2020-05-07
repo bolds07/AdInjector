@@ -29,12 +29,12 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.preference.PreferenceManager;
 
-import com.crashlytics.android.Crashlytics;
 import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.reward.RewardItem;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.crashlytics.FirebaseCrashlytics;
 import com.tomatedigital.adinjector.handler.ResizableBannerAdHandler;
 import com.tomatedigital.adinjector.handler.RewardAdHandler;
 import com.tomatedigital.adinjector.listener.RewardAdListener;
@@ -117,7 +117,7 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
                         else
                             rewardListener.onVideoWatched(reward);
                     } catch (Exception e) {
-                        Crashlytics.logException(e);
+                        FirebaseCrashlytics.getInstance().recordException(e);
                     }
                 });
             });

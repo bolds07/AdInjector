@@ -1,16 +1,15 @@
 package com.tomatedigital.adinjector.handler;
 
 import android.content.Context;
-import android.util.Log;
 
 import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
 
-import com.crashlytics.android.Crashlytics;
 import com.google.android.gms.ads.InterstitialAd;
 import com.google.android.gms.ads.MobileAds;
 import com.google.android.gms.ads.reward.RewardItem;
 import com.google.android.gms.ads.reward.RewardedVideoAd;
+import com.google.firebase.crashlytics.FirebaseCrashlytics;
 import com.tomatedigital.adinjector.AdMobRequestUtil;
 import com.tomatedigital.adinjector.AdsAppCompatActivity;
 import com.tomatedigital.adinjector.listener.GenericAdListener;
@@ -67,7 +66,7 @@ public class RewardAdHandler extends AdHandler {
         this.interstitialAd.setImmersiveMode(true);
 
         this.loadAd(c);
-        Crashlytics.log(Log.DEBUG,"debug","RewardAdHandler created");
+        FirebaseCrashlytics.getInstance().log("RewardAdHandler created");
 
     }
 
@@ -111,7 +110,6 @@ public class RewardAdHandler extends AdHandler {
         this.rewardedVideoAd.pause(adsAppCompatActivity);
 
 
-
     }
 
     @Override
@@ -128,11 +126,11 @@ public class RewardAdHandler extends AdHandler {
     public void showAd(RewardAdListener.VideoRewardListener rewardListener) {
 
         if (this.rewardedVideoAdListener.getStatus() == GenericAdListener.AdStatus.LOADED) {
-            Crashlytics.log(Log.DEBUG,"DEBUG","shown video ad: " + this.videoAdCount++);
+            FirebaseCrashlytics.getInstance().log("shown video ad: " + this.videoAdCount++);
             this.rewardedVideoAdListener.setOnVideoRewardListener(rewardListener);
             this.rewardedVideoAd.show();
         } else if (this.interstitialAdListener.getStatus() == GenericAdListener.AdStatus.LOADED) {
-            Crashlytics.log(Log.DEBUG,"DEBUG","shown interstitial ad: " + this.intertitialAdCount++);
+            FirebaseCrashlytics.getInstance().log("shown interstitial ad: " + this.intertitialAdCount++);
             this.interstitialAdListener.setOnVideoRewardListener(rewardListener);
             this.interstitialAd.show();
         }

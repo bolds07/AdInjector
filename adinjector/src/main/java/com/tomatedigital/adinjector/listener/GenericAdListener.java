@@ -6,11 +6,11 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import com.crashlytics.android.Crashlytics;
 import com.google.android.gms.ads.AdListener;
 import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.reward.RewardItem;
 import com.google.firebase.analytics.FirebaseAnalytics;
+import com.google.firebase.crashlytics.FirebaseCrashlytics;
 import com.tomatedigital.adinjector.AdsAppCompatActivity;
 
 public abstract class GenericAdListener extends AdListener {
@@ -69,7 +69,7 @@ public abstract class GenericAdListener extends AdListener {
 
     @Override
     public void onAdLoaded() {
-        Crashlytics.log(Log.DEBUG,"DEBUG","ad: " + this.adUnit + " loaded");
+        FirebaseCrashlytics.getInstance().log( "ad: " + this.adUnit + " loaded");
         this.triesFailed = 0;
         this.lastLoadTimestamp = System.currentTimeMillis();
         this.status = AdStatus.LOADED;
@@ -79,7 +79,7 @@ public abstract class GenericAdListener extends AdListener {
 
     @Override
     public void onAdClicked() {
-        Crashlytics.log(Log.DEBUG,"DEBUG","ad: " + this.adUnit + " clicked: " + this.clicks++);
+        FirebaseCrashlytics.getInstance().log( "ad: " + this.adUnit + " clicked: " + this.clicks++);
         this.status = AdStatus.CLICKED;
 
     }
@@ -132,7 +132,7 @@ public abstract class GenericAdListener extends AdListener {
             sizeCode = 7;
 
         b.putInt("size", sizeCode);
-        Crashlytics.log(Log.VERBOSE,"DEBUG","ad: " + this.adUnit + " failed to load: " + this.triesFailed + " code: " + i + " lastError: " + (System.currentTimeMillis()-this.lastFailTimestamp)/1000 + "sec ago");
+        FirebaseCrashlytics.getInstance().log( "ad: " + this.adUnit + " failed to load: " + this.triesFailed + " code: " + i + " lastError: " + (System.currentTimeMillis()-this.lastFailTimestamp)/1000 + "sec ago");
         FirebaseAnalytics.getInstance(this.context).logEvent("ad_failed_to_load", b);
     }
 

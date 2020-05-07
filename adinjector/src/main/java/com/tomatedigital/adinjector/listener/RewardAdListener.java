@@ -4,10 +4,10 @@ import android.content.Context;
 
 import androidx.annotation.Nullable;
 
-import com.crashlytics.android.Crashlytics;
 import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.reward.RewardItem;
 import com.google.android.gms.ads.reward.RewardedVideoAdListener;
+import com.google.firebase.crashlytics.FirebaseCrashlytics;
 import com.tomatedigital.adinjector.handler.AdHandler;
 
 public class RewardAdListener extends GenericAdListener implements RewardedVideoAdListener {
@@ -60,7 +60,7 @@ public class RewardAdListener extends GenericAdListener implements RewardedVideo
 
     @Override
     public void onRewardedVideoStarted() {
-        Crashlytics.log("ad: " +this.getAdUnit() + " started fullscreen");
+        FirebaseCrashlytics.getInstance().log("ad: " +this.getAdUnit() + " started fullscreen");
     }
 
     @Override
@@ -70,7 +70,7 @@ public class RewardAdListener extends GenericAdListener implements RewardedVideo
 
     @Override
     public void onRewardedVideoAdClosed() {
-        Crashlytics.log("ad: " + this.getAdUnit() + " closed");
+        FirebaseCrashlytics.getInstance().log("ad: " + this.getAdUnit() + " closed");
         if (this.rewardListener != null)
             this.rewardListener.onVideoWatched(this.lastReward);
 

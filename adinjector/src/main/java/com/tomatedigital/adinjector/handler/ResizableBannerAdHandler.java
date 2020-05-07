@@ -8,9 +8,9 @@ import android.view.ViewGroup;
 import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
 
-import com.crashlytics.android.Crashlytics;
 import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.AdView;
+import com.google.firebase.crashlytics.FirebaseCrashlytics;
 import com.tomatedigital.adinjector.AdMobRequestUtil;
 import com.tomatedigital.adinjector.AdsAppCompatActivity;
 import com.tomatedigital.adinjector.listener.ResizableBannerAdListener;
@@ -146,7 +146,7 @@ public class ResizableBannerAdHandler extends AdHandler {
             this.adView.setLayoutParams(layoutParams);
         } catch (Exception e) {
             //monitore
-            Crashlytics.logException(e);
+            FirebaseCrashlytics.getInstance().recordException(e);
         }
     }
 }

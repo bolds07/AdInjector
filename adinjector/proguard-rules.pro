@@ -2,6 +2,6 @@
  -keepattributes *Annotation*
  -keepattributes SourceFile,LineNumberTable
  -keep public class * extends java.lang.Exception
- #-keep class com.crashlytics.** { *; }
- #-dontwarn com.crashlytics.**
+ #-keep class com.FirebaseCrashlytics.** { *; }
+ #-dontwarn com.FirebaseCrashlytics.**
  #================END=============================
