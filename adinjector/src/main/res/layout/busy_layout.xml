@@ -27,10 +27,14 @@
 
     <ProgressBar
         android:id="@+id/progressBar"
-        style="?android:attr/progressBarStyleHorizontal"
+        style="@style/Widget.AppCompat.ProgressBar.Horizontal"
         android:layout_width="300dp"
         android:layout_height="wrap_content"
         android:layout_below="@id/textLoading"
         android:layout_centerHorizontal="true"
-        android:indeterminate="true" />
+        android:indeterminate="true"
+      android:layout_marginVertical="5dp"
+        android:scaleY="3"
+       />
+
 </RelativeLayout>
