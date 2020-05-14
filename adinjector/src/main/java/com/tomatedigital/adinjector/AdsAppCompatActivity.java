@@ -37,6 +37,7 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
 import com.tomatedigital.adinjector.handler.ResizableBannerAdHandler;
 import com.tomatedigital.adinjector.handler.RewardAdHandler;
+import com.tomatedigital.adinjector.listener.GenericAdListener;
 import com.tomatedigital.adinjector.listener.RewardAdListener;
 
 import java.util.HashSet;
@@ -47,9 +48,6 @@ import java.util.Set;
 public abstract class AdsAppCompatActivity extends AppCompatActivity implements ViewTreeObserver.OnGlobalLayoutListener, OnSuccessListener<Location> {
 
     private static final int CODE_REQUEST_GPS = 25471;
-
-    private static final long MINIMUM_BUSY_TIME = 5500;
-    private static final long MAX_LOAD_AD_VIDEO_DURATION = 8000;
 
 
     private static Location loc;
@@ -65,8 +63,9 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
     private long busyAdStartDisplayAt;
 
 
-    @SuppressLint("StaticFieldLeak")
     private static RewardAdHandler rewardHandler;
+    private boolean bannerAdOn;
+    private boolean busyAdOn;
 
     protected ViewGroup getMainLayout() {
         return mainLayout;
@@ -88,9 +87,9 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
     }
 
 
-    protected void showRewardedVideoOrLoad(@NonNull final RewardAdListener.VideoRewardListener rewardListener, final RewardItem reward) {
+    protected void showRewardedVideoOrLoad(@NonNull final RewardAdListener.VideoRewardListener rewardListener, @Nullable final RewardItem reward, @Nullable GenericAdListener.AdType preference) {
         if (rewardHandler.isAdReady())
-            rewardHandler.showAd(rewardListener);
+            rewardHandler.showAd(rewardListener, preference);
         else {
             busy(true);
             final long waitingTime = System.currentTimeMillis();
@@ -102,7 +101,7 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
                     } catch (InterruptedException ignored) {
                     }
                 }
-                while (rewardHandler.hasAdFailed() && System.currentTimeMillis() - waitingTime < MAX_LOAD_AD_VIDEO_DURATION) {
+                while (rewardHandler.hasAdFailed() && System.currentTimeMillis() - waitingTime < maxLoadVideoAdDuration()) {
                     try {
                         Thread.sleep(1000);
                     } catch (InterruptedException ignored) {
@@ -113,7 +112,7 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
                     busy(false);
                     try {
                         if (rewardHandler.isAdReady())
-                            rewardHandler.showAd(rewardListener);
+                            rewardHandler.showAd(rewardListener, preference);
                         else
                             rewardListener.onVideoWatched(reward);
                     } catch (Exception e) {
@@ -129,8 +128,8 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
     public void onRestoreInstanceState(@Nullable Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
 
-        if (savedInstanceState != null)
-            busyAdStartDisplayAt = savedInstanceState.getLong("busyAdStartDisplayAt", System.currentTimeMillis());
+
+        busyAdStartDisplayAt = savedInstanceState.getLong("busyAdStartDisplayAt", System.currentTimeMillis());
 
 
     }
@@ -244,6 +243,10 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
+
+        this.bannerAdOn = this.showBannerAd();
+        this.busyAdOn = this.showBusyAds();
+
         preInjectStuff();
 
         if (loc == null)
@@ -297,7 +300,7 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
         this.mainLayout.addView(tmp, 0);
         this.mainLayout = (ViewGroup) tmp;
 
-        if (this.showBannerAd() && (this.mainLayout instanceof LinearLayoutCompat || this.mainLayout instanceof LinearLayout))
+        if (this.bannerAdOn && (this.mainLayout instanceof LinearLayoutCompat || this.mainLayout instanceof LinearLayout))
             this.mainLayout.getViewTreeObserver().addOnGlobalLayoutListener(this);
 
     }
@@ -305,7 +308,7 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
 
     private void createRewardHandler() {
         if (rewardHandler == null)
-            rewardHandler = new RewardAdHandler(this, this.getRewardAdUnit(), this.getInterstitialAdUnit(), this.getWaitBeforeRetryLoadAd(), keywords);
+            rewardHandler = new RewardAdHandler(this, this.getRewardAdUnit(), this.getInterstitialAdUnit(), 60000L, this.getWaitBeforeRetryLoadAd(), keywords);
     }
 
 
@@ -328,15 +331,13 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
 
 
     private void createBannerAd(@NonNull ViewGroup container) {
-        //if (this.showBannerAd()) {
-        this.adView = new AdView(this);
-        this.adView.setId(R.id.adview);
-        this.adView.setAdUnitId(this.getBannerAdUnit());
-        container.addView(this.adView);
-        // } else
-        if (!this.showBannerAd())
-            this.adView.setVisibility(View.GONE);
-        //      this.adView = findViewById(R.id.adview);
+        if (this.bannerAdOn) {
+            this.adView = new AdView(this);
+            this.adView.setId(R.id.adview);
+            this.adView.setAdUnitId(this.getBannerAdUnit());
+            container.addView(this.adView);
+        } else
+            this.adView = findViewById(R.id.adview);
 
 
     }
@@ -345,12 +346,12 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
     @MainThread
     public void busy(boolean b) {
 
-        if (b || !this.showBusyAds()) {
+        if (b || !this.busyAdOn) {
             showBusyView(b);
 
         } else {
             AsyncTask.THREAD_POOL_EXECUTOR.execute(() -> {
-                while (System.currentTimeMillis() - busyAdStartDisplayAt < MINIMUM_BUSY_TIME) {
+                while (System.currentTimeMillis() - busyAdStartDisplayAt < getMinimumBusyTime()) {
                     try {
                         Thread.sleep(1000);
                     } catch (InterruptedException ignored) {
@@ -367,26 +368,19 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
             if (this.fadeView != null)
                 this.fadeView.setVisibility(View.VISIBLE);
 
-            if (this.showBusyAds()) {
+            if (this.busyAdOn) {
                 busyHandler.showAd();
                 busyAdStartDisplayAt = System.currentTimeMillis();
             }
-            if (this.adView != null && this.showBannerAd()) {
-                this.adView.pause();
-                this.adView.setVisibility(View.GONE);
-            }
+
         } else {
             if (this.fadeView != null)
                 this.fadeView.setVisibility(View.GONE);
 
-            if (this.showBusyAds())
+            if (this.busyAdOn)
                 busyHandler.hideAd();
 
 
-            if (adView != null) {
-                adView.setVisibility(View.VISIBLE);
-                adView.resume();
-            }
         }
 
     }
@@ -455,7 +449,7 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
     public void onGlobalLayout() {
 
         this.mainLayout.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-        if (this.showBannerAd() && (this.mainLayout instanceof LinearLayoutCompat || this.mainLayout instanceof LinearLayout)) {
+        if (this.bannerAdOn && (this.mainLayout instanceof LinearLayoutCompat || this.mainLayout instanceof LinearLayout)) {
             int heightUsed = this.mainLayout.getChildAt(this.mainLayout.getChildCount() - 1).getBottom();
             injectBannerAd(this.mainLayout.getHeight() - heightUsed);
         }
@@ -484,5 +478,8 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
 
     protected abstract boolean showBannerAd();
 
+    protected abstract long getMinimumBusyTime();
+
+    protected abstract long maxLoadVideoAdDuration();
 
 }

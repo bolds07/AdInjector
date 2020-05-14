@@ -1,8 +1,7 @@
 package com.tomatedigital.adinjector.listener;
 
-import android.content.Context;
+import android.app.Activity;
 import android.os.Bundle;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 
@@ -11,7 +10,6 @@ import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.reward.RewardItem;
 import com.google.firebase.analytics.FirebaseAnalytics;
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
-import com.tomatedigital.adinjector.AdsAppCompatActivity;
 
 public abstract class GenericAdListener extends AdListener {
 
@@ -21,7 +19,7 @@ public abstract class GenericAdListener extends AdListener {
 
     private final String adUnit;
     private final AdSize size;
-    Context context;
+    Activity activity;
     protected AdStatus status;
 
     int triesFailed;
@@ -34,10 +32,9 @@ public abstract class GenericAdListener extends AdListener {
     protected RewardItem lastReward;
 
 
-
-    GenericAdListener(Context context, String adUnit, AdSize size) {
+    GenericAdListener(Activity context, String adUnit, AdSize size) {
         this.adUnit = adUnit;
-        this.context = context;
+        this.activity = context;
         this.size = size;
 
         this.status = AdStatus.EMPTY;
@@ -69,7 +66,7 @@ public abstract class GenericAdListener extends AdListener {
 
     @Override
     public void onAdLoaded() {
-        FirebaseCrashlytics.getInstance().log( "ad: " + this.adUnit + " loaded");
+        FirebaseCrashlytics.getInstance().log("ad: " + this.adUnit + " loaded");
         this.triesFailed = 0;
         this.lastLoadTimestamp = System.currentTimeMillis();
         this.status = AdStatus.LOADED;
@@ -79,14 +76,14 @@ public abstract class GenericAdListener extends AdListener {
 
     @Override
     public void onAdClicked() {
-        FirebaseCrashlytics.getInstance().log( "ad: " + this.adUnit + " clicked: " + this.clicks++);
+        FirebaseCrashlytics.getInstance().log("ad: " + this.adUnit + " clicked: " + this.clicks++);
         this.status = AdStatus.CLICKED;
 
     }
 
 
-    public void setContext(AdsAppCompatActivity c) {
-        this.context = c;
+    public void setContext(@NonNull final Activity c) {
+        this.activity = c;
     }
 
     public AdStatus getStatus() {
@@ -113,7 +110,7 @@ public abstract class GenericAdListener extends AdListener {
         if (this.lastFailTimestamp > 0)
             b.putLong("failInterval", System.currentTimeMillis() - this.lastFailTimestamp);
 
-        b.putLong("successInterval", System.currentTimeMillis() - this.lastLoadTimestamp);
+
         int sizeCode = 0;
 
         if (size == AdSize.BANNER)
@@ -132,8 +129,8 @@ public abstract class GenericAdListener extends AdListener {
             sizeCode = 7;
 
         b.putInt("size", sizeCode);
-        FirebaseCrashlytics.getInstance().log( "ad: " + this.adUnit + " failed to load: " + this.triesFailed + " code: " + i + " lastError: " + (System.currentTimeMillis()-this.lastFailTimestamp)/1000 + "sec ago");
-        FirebaseAnalytics.getInstance(this.context).logEvent("ad_failed_to_load", b);
+        FirebaseCrashlytics.getInstance().log("ad: " + this.adUnit + " failed to load: " + this.triesFailed + " code: " + i + " lastError: " + (System.currentTimeMillis() - this.lastFailTimestamp) / 1000 + "sec ago");
+        FirebaseAnalytics.getInstance(this.activity).logEvent("ad_failed_to_load", b);
     }
 
     public void loading() {
@@ -141,7 +138,7 @@ public abstract class GenericAdListener extends AdListener {
     }
 
     public enum AdType {
-        DEFAULT, BUSY, CARD, REWARD, INTERSTICIAL
+        DEFAULT, BUSY, CARD, REWARD_VIDEO, INTERSTICIAL
     }
 
     public enum AdStatus {

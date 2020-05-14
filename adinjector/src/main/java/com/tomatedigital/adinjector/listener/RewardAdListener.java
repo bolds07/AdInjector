@@ -1,7 +1,8 @@
 package com.tomatedigital.adinjector.listener;
 
-import android.content.Context;
+import android.app.Activity;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.google.android.gms.ads.AdSize;
@@ -23,8 +24,8 @@ public class RewardAdListener extends GenericAdListener implements RewardedVideo
     private final AdHandler handler;
 
 
-    public RewardAdListener(Context c, AdHandler handler, String adunit, AdSize size, long retryInterval) {
-        super(c, adunit, size);
+    public RewardAdListener(@NonNull final Activity activity, @NonNull final AdHandler handler, @NonNull final String adunit, @NonNull final AdSize size, final long retryInterval) {
+        super(activity, adunit, size);
         this.retryInterval = retryInterval;
         this.handler = handler;
 
@@ -60,7 +61,7 @@ public class RewardAdListener extends GenericAdListener implements RewardedVideo
 
     @Override
     public void onRewardedVideoStarted() {
-        FirebaseCrashlytics.getInstance().log("ad: " +this.getAdUnit() + " started fullscreen");
+        FirebaseCrashlytics.getInstance().log("ad: " + this.getAdUnit() + " started fullscreen");
     }
 
     @Override
@@ -75,7 +76,7 @@ public class RewardAdListener extends GenericAdListener implements RewardedVideo
             this.rewardListener.onVideoWatched(this.lastReward);
 
 
-            this.handler.loadAd(this.context);
+        this.handler.loadAd(this.activity);
 
 
     }
@@ -98,7 +99,7 @@ public class RewardAdListener extends GenericAdListener implements RewardedVideo
     @Override
     public void onRewardedVideoAdFailedToLoad(int i) {
         this.onAdFailedToLoad(i);
-        this.handler.loadAd(this.context);
+        this.handler.loadAd(this.activity);
     }
 
 

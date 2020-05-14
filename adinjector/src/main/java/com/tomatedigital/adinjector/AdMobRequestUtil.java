@@ -8,15 +8,30 @@ import androidx.annotation.Nullable;
 
 import com.google.ads.mediation.admob.AdMobAdapter;
 import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.MobileAds;
+import com.google.android.gms.ads.RequestConfiguration;
+import com.google.android.gms.ads.query.AdInfo;
 
 
 public class AdMobRequestUtil {
 
+    static {
+        MobileAds.setAppMuted(false);
+        MobileAds.setAppVolume(1f);
+        MobileAds.setRequestConfiguration(MobileAds.getRequestConfiguration()
+                .toBuilder()
+                .setMaxAdContentRating(RequestConfiguration.MAX_AD_CONTENT_RATING_MA)
+                .setTagForUnderAgeOfConsent(RequestConfiguration.TAG_FOR_UNDER_AGE_OF_CONSENT_FALSE)
+                .build());
+    }
+
     @NonNull
     public static AdRequest.Builder buildAdRequest(@Nullable Location loc, @NonNull String... keywords) {
-        Bundle extras = new Bundle();
-        extras.putString("max_ad_content_rating", "MA");
-        AdRequest.Builder adRequest = new AdRequest.Builder().addNetworkExtrasBundle(AdMobAdapter.class, extras);
+
+        AdRequest.Builder adRequest = new AdRequest.Builder();
+
+
+        adRequest.setContentUrl("https://www.sorteiomaster.com.br");
 
 
         for (String keyword : keywords)

@@ -1,7 +1,6 @@
 package com.tomatedigital.adinjector.handler;
 
 import android.app.Activity;
-import android.content.Context;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -18,6 +17,7 @@ import com.tomatedigital.adinjector.listener.ResizableBannerAdListener;
 public class ResizableBannerAdHandler extends AdHandler {
 
 
+    private Activity activity;
     private int adShownCount;
     private AdView adView;
     @NonNull
@@ -30,14 +30,14 @@ public class ResizableBannerAdHandler extends AdHandler {
 
 
     public ResizableBannerAdHandler(@NonNull AdView initialAd, long busyRefreshInterval, @NonNull String[] keywords) {
-        super(initialAd.getContext(), keywords);
+        super(keywords);
         this.maxSize = initialAd.getAdSize();
         this.adView = initialAd;
 
-
-        this.listener = new ResizableBannerAdListener(this.context, initialAd.getAdUnitId(), this.maxSize, this, busyRefreshInterval);
+        this.activity = (Activity) initialAd.getContext();
+        this.listener = new ResizableBannerAdListener(this.activity, initialAd.getAdUnitId(), this.maxSize, this, busyRefreshInterval);
         this.adView.setAdListener(this.listener);
-        this.loadAd(this.context);
+        this.loadAd((Activity) initialAd.getContext());
 
         this.adShownCount = 0;
     }
@@ -47,13 +47,15 @@ public class ResizableBannerAdHandler extends AdHandler {
     }
 
     @Override
-    public void loadAd(Context c) {
-        this.context = c;
-        if (this.listener.shouldLoad() && (!(this.context instanceof Activity) || !((Activity) this.context).isFinishing())) {
+    public void loadAd(@NonNull final Activity c) {
+        this.activity = c;
+        this.listener.setContext(this.activity);
+        if (this.listener.shouldLoad()) {
             this.adView.loadAd(AdMobRequestUtil.buildAdRequest(AdsAppCompatActivity.getLoc(), this.keywords).build());
             this.listener.loading();
             this.adShownCount = 0;
         }
+
     }
 
     @MainThread
@@ -80,18 +82,18 @@ public class ResizableBannerAdHandler extends AdHandler {
     }
 
     @Override
-    public void destroy(Context adsAppCompatActivity) {
+    public void destroy(@NonNull final Activity adsAppCompatActivity) {
         this.adView.destroy();
     }
 
     @Override
-    public void pause(Context adsAppCompatActivity) {
+    public void pause(@NonNull final Activity adsAppCompatActivity) {
         this.adView.pause();
     }
 
     @Override
-    public void resume(Context adsAppCompatActivity) {
-        this.context = adsAppCompatActivity;
+    public void resume(@NonNull final Activity adsAppCompatActivity) {
+        this.activity = adsAppCompatActivity;
         this.adView.resume();
     }
 
@@ -117,7 +119,7 @@ public class ResizableBannerAdHandler extends AdHandler {
 
 
         if (size != null) {
-            AdView newAd = new AdView(this.context);
+            AdView newAd = new AdView(this.activity);
             newAd.setId(this.adView.getId());
             newAd.setAdUnitId(this.adView.getAdUnitId());
             newAd.setAdSize(size);
@@ -133,7 +135,7 @@ public class ResizableBannerAdHandler extends AdHandler {
             container.addView(this.adView);
             this.adView.setLayoutParams(layout);
 
-            this.loadAd(this.context);
+            this.loadAd(this.activity);
         }
     }
 
