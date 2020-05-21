@@ -217,7 +217,7 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
     }
 
     public boolean isValid() {
-        return !this.isFinishing() && !(Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1 && this.isDestroyed());
+        return !this.isFinishing();
     }
 
 
@@ -308,8 +308,10 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
 
     private void createRewardHandler() {
         if (rewardHandler == null)
-            rewardHandler = new RewardAdHandler(this, this.getRewardAdUnit(), this.getInterstitialAdUnit(), 60000L, this.getWaitBeforeRetryLoadAd(), keywords);
+            rewardHandler = new RewardAdHandler(this, this.getRewardAdUnit(), this.getInterstitialAdUnit(), this.waitBetweenConsecutiveVideos(), this.getWaitBeforeRetryLoadAd(), keywords);
     }
+
+    protected abstract long waitBetweenConsecutiveVideos();
 
 
     private void injectBusyAd(@NonNull final RelativeLayout relativeLayout) {

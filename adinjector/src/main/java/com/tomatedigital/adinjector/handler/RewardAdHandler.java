@@ -33,13 +33,12 @@ public class RewardAdHandler extends AdHandler {
     private final RewardAdListener interstitialAdListener;
 
     private final long waitConsecutiveVideos;
-    private long lastVideoAd;
+
 
     public RewardAdHandler(@NonNull final Activity activity, @NonNull final String reward_ad_unit_id, @NonNull final String inters_ad_unit_id, final long waitConsecutiveVideos, final long waitForRetry, @NonNull final String[] keywords) {
         super( keywords);
 
         this.waitConsecutiveVideos = waitConsecutiveVideos;
-        this.lastVideoAd = 0L;
 
         this.rewardAdUnitId = reward_ad_unit_id;
         this.rewardedVideoAd = MobileAds.getRewardedVideoAdInstance(activity);
@@ -134,11 +133,11 @@ public class RewardAdHandler extends AdHandler {
     @MainThread
     public void showAd(@NonNull final RewardAdListener.VideoRewardListener rewardListener, @Nullable GenericAdListener.AdType preference) {
 
-        if (this.rewardedVideoAdListener.getStatus() == GenericAdListener.AdStatus.LOADED && System.currentTimeMillis() - this.lastVideoAd > this.waitConsecutiveVideos && (preference != GenericAdListener.AdType.INTERSTICIAL || this.interstitialAdListener.getStatus() != GenericAdListener.AdStatus.LOADED)) {
+        if (this.rewardedVideoAdListener.getStatus() == GenericAdListener.AdStatus.LOADED && System.currentTimeMillis() - this.rewardedVideoAdListener.getLastRewardTimestamp() > this.waitConsecutiveVideos && (preference != GenericAdListener.AdType.INTERSTITIAL || this.interstitialAdListener.getStatus() != GenericAdListener.AdStatus.LOADED)) {
             FirebaseCrashlytics.getInstance().log("shown video ad: " + this.videoAdCount++);
             this.rewardedVideoAdListener.setOnVideoRewardListener(rewardListener);
             this.rewardedVideoAd.show();
-            this.lastVideoAd = System.currentTimeMillis();
+
         } else if (this.interstitialAdListener.getStatus() == GenericAdListener.AdStatus.LOADED ) {
             FirebaseCrashlytics.getInstance().log("shown interstitial ad: " + this.intertitialAdCount++);
             this.interstitialAdListener.setOnVideoRewardListener(rewardListener);
