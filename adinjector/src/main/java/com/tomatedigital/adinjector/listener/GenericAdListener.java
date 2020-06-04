@@ -7,19 +7,21 @@ import androidx.annotation.NonNull;
 
 import com.google.android.gms.ads.AdListener;
 import com.google.android.gms.ads.AdSize;
-import com.google.android.gms.ads.reward.RewardItem;
 import com.google.firebase.analytics.FirebaseAnalytics;
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
+import com.tomatedigital.adinjector.handler.GenericAdHandler;
 
 public abstract class GenericAdListener extends AdListener {
 
-    private static final AdSize INTERTITIAL = new AdSize(123, 2345);
-    private static final AdSize REWARD = new AdSize(1567, 212);
+    protected static final AdSize INTERTITIAL = new AdSize(123, 2345);
+    protected static final AdSize REWARD = new AdSize(1567, 212);
 
 
     private final String adUnit;
     private final AdSize size;
-    Activity activity;
+    protected final GenericAdHandler handler;
+    final long retryInterval;
+    protected Activity activity;
     protected AdStatus status;
 
     int triesFailed;
@@ -29,13 +31,13 @@ public abstract class GenericAdListener extends AdListener {
     private long lastLoadTimestamp;
     private int clicks;
 
-    protected RewardItem lastReward;
 
-
-    GenericAdListener(Activity context, String adUnit, AdSize size) {
+    GenericAdListener(@NonNull final Activity context, @NonNull final String adUnit, @NonNull final GenericAdHandler handler, @NonNull final AdSize size, final long retryInterval) {
         this.adUnit = adUnit;
         this.activity = context;
         this.size = size;
+        this.handler = handler;
+        this.retryInterval = retryInterval;
 
         this.status = AdStatus.EMPTY;
         this.triesFailed = 0;
@@ -45,15 +47,6 @@ public abstract class GenericAdListener extends AdListener {
 
     }
 
-    @NonNull
-    public static AdSize getREWARD() {
-        return REWARD;
-    }
-
-    @NonNull
-    public static AdSize getINTERTITIAL() {
-        return INTERTITIAL;
-    }
 
     @Override
     /**
@@ -66,8 +59,9 @@ public abstract class GenericAdListener extends AdListener {
         this.status = AdStatus.FAILED;
         this.lastFailTimestamp = System.currentTimeMillis();
 
-
+        this.handler.loadAd();
     }
+
 
     @Override
     public void onAdLoaded() {
@@ -81,32 +75,30 @@ public abstract class GenericAdListener extends AdListener {
 
     @Override
     public void onAdClicked() {
-        FirebaseCrashlytics.getInstance().log("ad: " + this.adUnit + " clicked: " + this.clicks++);
-        this.status = AdStatus.CLICKED;
-
+        FirebaseCrashlytics.getInstance().log("ad: " + this.adUnit + " clicked: " + ++this.clicks);
     }
 
 
-    public void setContext(@NonNull final Activity c) {
-        this.activity = c;
-    }
 
     public AdStatus getStatus() {
         return this.status;
     }
 
-    public abstract boolean shouldLoad();
+    public boolean shouldLoad() {
+        return this.status != AdStatus.LOADED && this.status != AdStatus.LOADING && (this.status != AdStatus.FAILED || (System.currentTimeMillis() - this.lastFailTimestamp) > this.retryInterval * this.triesFailed);
+    }
 
     public long getLastLoadTimestamp() {
-        return lastLoadTimestamp;
+        return this.lastLoadTimestamp;
     }
 
 
+    @NonNull
     String getAdUnit() {
-        return adUnit;
+        return this.adUnit;
     }
 
-    private void logError(int i, AdSize size) {
+    private void logError(final int i, @NonNull final AdSize size) {
         Bundle b = new Bundle();
         b.putInt("error_code", i);
 
@@ -147,7 +139,7 @@ public abstract class GenericAdListener extends AdListener {
     }
 
     public enum AdStatus {
-        EMPTY, LOADING, LOADED, WATCHED, CLICKED, FAILED, REWARDED
+        EMPTY, LOADING, LOADED, WATCHED, FAILED, REWARDED
     }
 
 

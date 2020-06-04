@@ -35,8 +35,10 @@ import com.google.android.gms.ads.reward.RewardItem;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
+import com.tomatedigital.adinjector.handler.IntertitialAdHandler;
 import com.tomatedigital.adinjector.handler.ResizableBannerAdHandler;
 import com.tomatedigital.adinjector.handler.RewardAdHandler;
+import com.tomatedigital.adinjector.handler.ShowableAdHandler;
 import com.tomatedigital.adinjector.listener.GenericAdListener;
 import com.tomatedigital.adinjector.listener.RewardAdListener;
 
@@ -48,6 +50,7 @@ import java.util.Set;
 public abstract class AdsAppCompatActivity extends AppCompatActivity implements ViewTreeObserver.OnGlobalLayoutListener, OnSuccessListener<Location> {
 
     private static final int CODE_REQUEST_GPS = 25471;
+    private static final long MIN_BUSY_TIME = 3000;
 
 
     private static Location loc;
@@ -64,6 +67,8 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
 
 
     private static RewardAdHandler rewardHandler;
+    private static IntertitialAdHandler intertitialAdHandler;
+
     private boolean bannerAdOn;
     private boolean busyAdOn;
 
@@ -78,6 +83,7 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
 
     private static final Set<String> requestingPermissions = new HashSet<>();
 
+
     protected static void setKeywords(@NonNull String[] keys) {
         keywords = keys;
     }
@@ -87,42 +93,78 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
     }
 
 
-    protected void showRewardedVideoOrLoad(@NonNull final RewardAdListener.VideoRewardListener rewardListener, @Nullable final RewardItem reward, @Nullable GenericAdListener.AdType preference) {
-        if (rewardHandler.isAdReady())
-            rewardHandler.showAd(rewardListener, preference);
+    protected boolean showAdOrMiss(@NonNull final RewardAdListener.RewardListener rewardListener, @Nullable final RewardItem reward, @NonNull GenericAdListener.AdType preference) {
+
+        if (preference == GenericAdListener.AdType.REWARD_VIDEO && rewardHandler.isAdReady()) {
+            rewardHandler.showAd(rewardListener);
+            return true;
+        } else if (intertitialAdHandler.isAdReady()) {
+            intertitialAdHandler.showAd(rewardListener);
+            return true;
+        } else {
+            rewardListener.onRewarded(reward);
+            return false;
+        }
+    }
+
+    private ShowableAdHandler getShowableAdHandler(@Nullable GenericAdListener.AdType preference) {
+        ShowableAdHandler handler;
+
+        if (preference != GenericAdListener.AdType.REWARD_VIDEO || System.currentTimeMillis() - rewardHandler.getLastRewardTimestamp() < this.minRewardVideoInterval())
+            handler = intertitialAdHandler;
+        else
+            handler = rewardHandler;
+
+
+        return handler;
+    }
+
+
+    protected void showAdOrLoad(@NonNull final RewardAdListener.RewardListener rewardListener, @Nullable final RewardItem reward, @Nullable GenericAdListener.AdType preference) {
+
+        ShowableAdHandler handler = getShowableAdHandler(preference);
+
+        if (handler.isAdReady())
+            handler.showAd(rewardListener);
+
         else {
             busy(true);
-            final long waitingTime = System.currentTimeMillis();
-            rewardHandler.loadAd(this);
-            AsyncTask.THREAD_POOL_EXECUTOR.execute(() -> {
-                while (!rewardHandler.isAdReady() && !rewardHandler.hasAdFailed()) {
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException ignored) {
-                    }
-                }
-                while (rewardHandler.hasAdFailed() && System.currentTimeMillis() - waitingTime < maxLoadVideoAdDuration()) {
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException ignored) {
-                    }
-                }
+            final long startTime = System.currentTimeMillis();
+            handler.loadAd();
 
+
+            AsyncTask.THREAD_POOL_EXECUTOR.execute(() -> {
+                while (!handler.isAdReady() && System.currentTimeMillis() - startTime < maxLoadVideoAdDuration()) {
+
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException ignored) {
+                    }
+                }
                 runOnUiThread(() -> {
                     busy(false);
                     try {
-                        if (rewardHandler.isAdReady())
-                            rewardHandler.showAd(rewardListener, preference);
+                        if (handler.isAdReady())
+                            handler.showAd(rewardListener);
                         else
-                            rewardListener.onVideoWatched(reward);
+                            rewardListener.onRewarded(reward);
                     } catch (Exception e) {
                         FirebaseCrashlytics.getInstance().recordException(e);
                     }
                 });
+
             });
         }
+
     }
 
+    @Override
+    public void onBackPressed() {
+        if (showIntertitialAd())
+            showAdOrMiss(new OnBackPressededReward(), null, GenericAdListener.AdType.INTERSTITIAL);
+        else
+            super.onBackPressed();
+    }
 
     @Override
     public void onRestoreInstanceState(@Nullable Bundle savedInstanceState) {
@@ -252,7 +294,7 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
         if (loc == null)
             loadGpsLocation();
 
-        createRewardHandler();
+        this.createHandlers();
 
         super.onCreate(savedInstanceState);
     }
@@ -306,12 +348,13 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
     }
 
 
-    private void createRewardHandler() {
-        if (rewardHandler == null)
-            rewardHandler = new RewardAdHandler(this, this.getRewardAdUnit(), this.getInterstitialAdUnit(), this.waitBetweenConsecutiveVideos(), this.getWaitBeforeRetryLoadAd(), keywords);
-    }
+    private void createHandlers() {
+        if (rewardHandler == null && showRewardedVideoAd())
+            rewardHandler = new RewardAdHandler(this, this.getRewardAdUnit(), waitBeforeRetryLoadAd(), keywords);
 
-    protected abstract long waitBetweenConsecutiveVideos();
+        if (intertitialAdHandler == null && showIntertitialAd())
+            intertitialAdHandler = new IntertitialAdHandler(this, getInterstitialAdUnit(), waitBeforeRetryLoadAd(), keywords);
+    }
 
 
     private void injectBusyAd(@NonNull final RelativeLayout relativeLayout) {
@@ -325,7 +368,7 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
         relativeLayout.addView(busyAd);
         RelativeLayout.LayoutParams layout = (RelativeLayout.LayoutParams) busyAd.getLayoutParams();
         layout.addRule(RelativeLayout.CENTER_IN_PARENT);
-        busyHandler = new ResizableBannerAdHandler(busyAd, this.getBusyRefreshInterval(), keywords);
+        busyHandler = new ResizableBannerAdHandler(busyAd, this.minBusyRefreshInterval(), this.minBusyShowTimesBeforeRefresh(), keywords);
 
         busyHandler.hideAd();
 
@@ -353,7 +396,7 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
 
         } else {
             AsyncTask.THREAD_POOL_EXECUTOR.execute(() -> {
-                while (System.currentTimeMillis() - busyAdStartDisplayAt < getMinimumBusyTime()) {
+                while (System.currentTimeMillis() - this.busyAdStartDisplayAt < AdsAppCompatActivity.MIN_BUSY_TIME) {
                     try {
                         Thread.sleep(1000);
                     } catch (InterruptedException ignored) {
@@ -370,19 +413,20 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
             if (this.fadeView != null)
                 this.fadeView.setVisibility(View.VISIBLE);
 
-            if (this.busyAdOn) {
-                busyHandler.showAd();
-                busyAdStartDisplayAt = System.currentTimeMillis();
-            }
+            if (this.busyAdOn)
+                busyHandler.showAd(this);
+
+            this.busyAdStartDisplayAt = System.currentTimeMillis();
 
         } else {
             if (this.fadeView != null)
                 this.fadeView.setVisibility(View.GONE);
 
             if (this.busyAdOn)
-                busyHandler.hideAd();
+                this.busyHandler.hideAd();
 
 
+            this.busyHandler.loadAd(this);
         }
 
     }
@@ -472,16 +516,31 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
 
     protected abstract String getRewardAdUnit();
 
-    protected abstract long getWaitBeforeRetryLoadAd();
+    protected abstract int minBusyShowTimesBeforeRefresh();
 
-    protected abstract long getBusyRefreshInterval();
+    protected abstract long minBusyRefreshInterval();
 
     protected abstract boolean showBusyAds();
 
     protected abstract boolean showBannerAd();
 
-    protected abstract long getMinimumBusyTime();
+    protected abstract long waitBeforeRetryLoadAd();
 
     protected abstract long maxLoadVideoAdDuration();
+
+    protected abstract long minRewardVideoInterval();
+
+    protected abstract boolean showIntertitialAd();
+
+    protected abstract boolean showRewardedVideoAd();
+
+
+    protected class OnBackPressededReward extends RewardAdListener.AlwaysAcceptRewardListener {
+
+        @Override
+        public void onRewarded(RewardItem reward) {
+            AdsAppCompatActivity.super.onBackPressed();
+        }
+    }
 
 }

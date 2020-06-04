@@ -14,55 +14,48 @@ import com.tomatedigital.adinjector.AdMobRequestUtil;
 import com.tomatedigital.adinjector.AdsAppCompatActivity;
 import com.tomatedigital.adinjector.listener.ResizableBannerAdListener;
 
-public class ResizableBannerAdHandler extends AdHandler {
+public class ResizableBannerAdHandler extends GenericAdHandler {
 
 
     private Activity activity;
-    private int adShownCount;
+
     private AdView adView;
-    @NonNull
-    private final ResizableBannerAdListener listener;
 
 
     //actually it just get smaller, i will need this if i want to enlarge in future
     private final AdSize maxSize;
-    private long retriesInterval;
 
 
-    public ResizableBannerAdHandler(@NonNull AdView initialAd, long busyRefreshInterval, @NonNull String[] keywords) {
+    public ResizableBannerAdHandler(@NonNull AdView initialAd, long busyRefreshInterval, int minBusyShowTimes, @NonNull String[] keywords) {
         super(keywords);
         this.maxSize = initialAd.getAdSize();
         this.adView = initialAd;
 
         this.activity = (Activity) initialAd.getContext();
-        this.listener = new ResizableBannerAdListener(this.activity, initialAd.getAdUnitId(), this.maxSize, this, busyRefreshInterval);
+        this.listener = new ResizableBannerAdListener(this.activity, initialAd.getAdUnitId(), this.maxSize, this, busyRefreshInterval, minBusyShowTimes);
         this.adView.setAdListener(this.listener);
-        this.loadAd((Activity) initialAd.getContext());
 
-        this.adShownCount = 0;
+        this.loadAd(this.activity);
     }
 
-    public AdSize getAdSize() {
-        return this.maxSize;
+    public long getLastLoadTimestamp() {
+        return this.listener.getLastLoadTimestamp();
     }
 
-    @Override
-    public void loadAd(@NonNull final Activity c) {
+
+    public boolean loadAd(@NonNull final Activity c) {
         this.activity = c;
-        this.listener.setContext(this.activity);
-        if (this.listener.shouldLoad()) {
-            this.adView.loadAd(AdMobRequestUtil.buildAdRequest(AdsAppCompatActivity.getLoc(), this.keywords).build());
-            this.listener.loading();
-            this.adShownCount = 0;
-        }
-
+        ((ResizableBannerAdListener) this.listener).setContext(c);
+        return super.loadAd();
     }
 
     @MainThread
-    public void showAd() {
+    public void showAd(@NonNull final Activity c) {
+        this.loadAd(c);
         this.adView.setVisibility(View.VISIBLE);
+
         this.adView.resume();
-        this.adShownCount++;
+
     }
 
     @MainThread
@@ -71,14 +64,10 @@ public class ResizableBannerAdHandler extends AdHandler {
         this.adView.pause();
     }
 
-    @Override
-    public boolean hasAdFailed() {
-        return false;
-    }
 
     @Override
-    public boolean isAdReady() {
-        return true;
+    protected void load() {
+        this.adView.loadAd(AdMobRequestUtil.buildAdRequest(AdsAppCompatActivity.getLoc(), this.keywords).build());
     }
 
     @Override
@@ -97,15 +86,6 @@ public class ResizableBannerAdHandler extends AdHandler {
         this.adView.resume();
     }
 
-    @Override
-    public long getLastRefresh() {
-        return this.listener.getLastLoadTimestamp();
-    }
-
-    @Override
-    public int getShownCount() {
-        return this.adShownCount;
-    }
 
     public void resize() {
 
@@ -151,4 +131,6 @@ public class ResizableBannerAdHandler extends AdHandler {
             FirebaseCrashlytics.getInstance().recordException(e);
         }
     }
+
+
 }

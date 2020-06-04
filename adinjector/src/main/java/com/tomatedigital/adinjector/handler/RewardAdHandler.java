@@ -4,107 +4,62 @@ import android.app.Activity;
 
 import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 
-import com.google.android.gms.ads.InterstitialAd;
 import com.google.android.gms.ads.MobileAds;
-import com.google.android.gms.ads.reward.RewardItem;
 import com.google.android.gms.ads.reward.RewardedVideoAd;
+import com.google.android.gms.ads.reward.RewardedVideoAdListener;
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
 import com.tomatedigital.adinjector.AdMobRequestUtil;
 import com.tomatedigital.adinjector.AdsAppCompatActivity;
-import com.tomatedigital.adinjector.listener.GenericAdListener;
 import com.tomatedigital.adinjector.listener.RewardAdListener;
 
-public class RewardAdHandler extends AdHandler {
-
+public class RewardAdHandler extends ShowableAdHandler {
 
 
     private final String rewardAdUnitId;
     private final RewardedVideoAd rewardedVideoAd;
-    @NonNull
-    private final RewardAdListener rewardedVideoAdListener;
+
     private int videoAdCount;
-    private int intertitialAdCount;
-
-    @NonNull
-    private final InterstitialAd interstitialAd;
-    @NonNull
-    private final RewardAdListener interstitialAdListener;
-
-    private final long waitConsecutiveVideos;
 
 
-    public RewardAdHandler(@NonNull final Activity activity, @NonNull final String reward_ad_unit_id, @NonNull final String inters_ad_unit_id, final long waitConsecutiveVideos, final long waitForRetry, @NonNull final String[] keywords) {
-        super( keywords);
+    public RewardAdHandler(@NonNull final Activity activity, @NonNull final String reward_ad_unit_id, final long waitForRetry, @NonNull final String[] keywords) {
+        super(keywords);
 
-        this.waitConsecutiveVideos = waitConsecutiveVideos;
 
         this.rewardAdUnitId = reward_ad_unit_id;
         this.rewardedVideoAd = MobileAds.getRewardedVideoAdInstance(activity);
-        this.rewardedVideoAdListener = new RewardAdListener(activity, this, reward_ad_unit_id, GenericAdListener.getREWARD(), waitForRetry);
-        this.rewardedVideoAd.setRewardedVideoAdListener(this.rewardedVideoAdListener);
+        this.listener = new RewardAdListener(activity, this, reward_ad_unit_id, waitForRetry);
+        this.rewardedVideoAd.setRewardedVideoAdListener((RewardedVideoAdListener) this.listener);
         this.rewardedVideoAd.setImmersiveMode(true);
 
-        this.interstitialAd = new InterstitialAd(activity);
-        this.interstitialAd.setAdUnitId(inters_ad_unit_id);
-        this.interstitialAdListener = new RewardAdListener(activity, this, inters_ad_unit_id, GenericAdListener.getINTERTITIAL(), waitForRetry) {
 
-            @Override
-            public void onAdOpened() {
-                super.onAdOpened();
-                this.onRewarded(new RewardItem() {
-                    @NonNull
-                    @Override
-                    public String getType() {
-                        return "interstitial reward";
-                    }
-
-                    @Override
-                    public int getAmount() {
-                        return 1;
-                    }
-                });
-                status = AdStatus.REWARDED;
-            }
-        };
-        this.interstitialAd.setAdListener(this.interstitialAdListener);
-        this.interstitialAd.setImmersiveMode(true);
-
-        this.loadAd(activity);
+        this.loadAd();
         FirebaseCrashlytics.getInstance().log("RewardAdHandler created");
 
     }
 
-    @MainThread
-    public void loadAd(@NonNull final Activity act) {
-
-        if (this.rewardedVideoAdListener.shouldLoad()) {
-            this.rewardedVideoAd.loadAd(this.rewardAdUnitId, AdMobRequestUtil.buildAdRequest(AdsAppCompatActivity.getLoc(), this.keywords).build());
-            this.rewardedVideoAdListener.loading();
-            this.videoAdCount = 0;
-        }
-
-        if (this.interstitialAdListener.shouldLoad()) {
-            this.interstitialAd.loadAd(AdMobRequestUtil.buildAdRequest(AdsAppCompatActivity.getLoc(), this.keywords).build());
-            this.interstitialAdListener.loading();
-            this.intertitialAdCount = 0;
-        }
-
-        this.interstitialAdListener.setContext(act);
-        this.rewardedVideoAdListener.setContext(act);
+    public void setUserId(@NonNull final String id) {
+        this.rewardedVideoAd.setUserId(id);
     }
+
 
     @Override
-    public boolean hasAdFailed() {
-        return this.rewardedVideoAdListener.getStatus() == RewardAdListener.AdStatus.FAILED && this.interstitialAdListener.getStatus() == GenericAdListener.AdStatus.FAILED;
+    protected void load() {
+        this.rewardedVideoAd.loadAd(this.rewardAdUnitId, AdMobRequestUtil.buildAdRequest(AdsAppCompatActivity.getLoc(), this.keywords).build());
     }
 
+    @MainThread
+    public void showAd(@NonNull final RewardAdListener.RewardListener rewardListener) {
 
-    public boolean isAdReady() {
-        return this.rewardedVideoAdListener.getStatus() == RewardAdListener.AdStatus.LOADED || this.interstitialAdListener.getStatus() == GenericAdListener.AdStatus.LOADED;
+        if (this.isAdReady()) {
+            FirebaseCrashlytics.getInstance().log("shown video ad: " + this.videoAdCount++);
+            ((RewardAdListener) this.listener).setOnVideoRewardListener(rewardListener);
+            this.rewardedVideoAd.show();
 
+        } else if (this.listener.shouldLoad())
+            super.loadAd();
     }
+
 
     @Override
     public void destroy(@NonNull final Activity adsAppCompatActivity) {
@@ -125,29 +80,8 @@ public class RewardAdHandler extends AdHandler {
         this.rewardedVideoAd.resume(adsAppCompatActivity);
     }
 
-    @Override
-    public long getLastRefresh() {
-        return Math.max(this.interstitialAdListener.getLastLoadTimestamp(), this.rewardedVideoAdListener.getLastLoadTimestamp());
-    }
 
-    @MainThread
-    public void showAd(@NonNull final RewardAdListener.VideoRewardListener rewardListener, @Nullable GenericAdListener.AdType preference) {
-
-        if (this.rewardedVideoAdListener.getStatus() == GenericAdListener.AdStatus.LOADED && System.currentTimeMillis() - this.rewardedVideoAdListener.getLastRewardTimestamp() > this.waitConsecutiveVideos && (preference != GenericAdListener.AdType.INTERSTITIAL || this.interstitialAdListener.getStatus() != GenericAdListener.AdStatus.LOADED)) {
-            FirebaseCrashlytics.getInstance().log("shown video ad: " + this.videoAdCount++);
-            this.rewardedVideoAdListener.setOnVideoRewardListener(rewardListener);
-            this.rewardedVideoAd.show();
-
-        } else if (this.interstitialAdListener.getStatus() == GenericAdListener.AdStatus.LOADED ) {
-            FirebaseCrashlytics.getInstance().log("shown interstitial ad: " + this.intertitialAdCount++);
-            this.interstitialAdListener.setOnVideoRewardListener(rewardListener);
-            this.interstitialAd.show();
-        } else
-            FirebaseCrashlytics.getInstance().log("showAd couldn't select reward ad to show");
-    }
-
-    @Override
-    public int getShownCount() {
-        return this.videoAdCount + this.intertitialAdCount;
+    public long getLastRewardTimestamp() {
+        return ((RewardAdListener) this.listener).getLastRewardTimestamp();
     }
 }

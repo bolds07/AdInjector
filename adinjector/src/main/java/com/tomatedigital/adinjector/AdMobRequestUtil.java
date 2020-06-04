@@ -16,8 +16,8 @@ import com.google.android.gms.ads.query.AdInfo;
 public class AdMobRequestUtil {
 
     static {
-        MobileAds.setAppMuted(false);
-        MobileAds.setAppVolume(1f);
+        MobileAds.setAppMuted(true);
+        //MobileAds.setAppVolume(0f);
         MobileAds.setRequestConfiguration(MobileAds.getRequestConfiguration()
                 .toBuilder()
                 .setMaxAdContentRating(RequestConfiguration.MAX_AD_CONTENT_RATING_MA)
@@ -38,6 +38,8 @@ public class AdMobRequestUtil {
             adRequest.addKeyword(keyword);
         if (loc != null)
             adRequest.setLocation(loc);
+
+
 
         return adRequest;
     }

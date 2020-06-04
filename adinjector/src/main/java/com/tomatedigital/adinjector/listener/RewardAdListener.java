@@ -5,37 +5,31 @@ import android.app.Activity;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.reward.RewardItem;
 import com.google.android.gms.ads.reward.RewardedVideoAdListener;
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
-import com.tomatedigital.adinjector.handler.AdHandler;
+import com.tomatedigital.adinjector.handler.RewardAdHandler;
 
 public class RewardAdListener extends GenericAdListener implements RewardedVideoAdListener {
 
 
-    private final long retryInterval;
-
-    private VideoRewardListener rewardListener;
+    private RewardListener rewardListener;
     @Nullable
     private RewardItem lastReward;
 
     private long lastRewardTimestamp;
-    private final AdHandler handler;
 
+    private boolean wasLastAdCanceled;
 
-    public RewardAdListener(@NonNull final Activity activity, @NonNull final AdHandler handler, @NonNull final String adunit, @NonNull final AdSize size, final long retryInterval) {
-        super(activity, adunit, size);
-        this.retryInterval = retryInterval;
-        this.handler = handler;
-
+    public RewardAdListener(@NonNull final Activity activity, @NonNull final RewardAdHandler handler, @NonNull final String adunit, final long retryInterval) {
+        super(activity, adunit, handler, REWARD, retryInterval);
     }
 
     public long getLastRewardTimestamp() {
         return this.lastRewardTimestamp;
     }
 
-    public void setOnVideoRewardListener(VideoRewardListener listener) {
+    public void setOnVideoRewardListener(RewardListener listener) {
         this.rewardListener = listener;
     }
 
@@ -53,30 +47,28 @@ public class RewardAdListener extends GenericAdListener implements RewardedVideo
 
     }
 
-    @Override
-    public void onAdOpened() {
-        this.onRewardedVideoAdOpened();
-    }
-
 
     @Override
     public void onRewardedVideoStarted() {
+        //super.onAdOpened(); does nothing
         FirebaseCrashlytics.getInstance().log("ad: " + this.getAdUnit() + " started fullscreen");
     }
 
-    @Override
-    public void onAdClosed() {
-        this.onRewardedVideoAdClosed();
-    }
 
     @Override
     public void onRewardedVideoAdClosed() {
+        //super.onAdClosed(); does nothing
         FirebaseCrashlytics.getInstance().log("ad: " + this.getAdUnit() + " closed");
-        if (this.rewardListener != null)
-            this.rewardListener.onVideoWatched(this.lastReward);
+        if (this.rewardListener != null) {
+            if (this.status == AdStatus.REWARDED)
+                this.rewardListener.onRewarded(this.lastReward);
+            else
+                this.rewardListener.onCanceledBeforeReward();
+        }
 
+        this.wasLastAdCanceled = this.status != AdStatus.REWARDED;
 
-        this.handler.loadAd(this.activity);
+        this.handler.loadAd();
 
 
     }
@@ -93,13 +85,12 @@ public class RewardAdListener extends GenericAdListener implements RewardedVideo
 
     @Override
     public void onRewardedVideoAdLeftApplication() {
-
+        //super.onAdLeftApplication(); does nothing;
     }
 
     @Override
     public void onRewardedVideoAdFailedToLoad(int i) {
         this.onAdFailedToLoad(i);
-        this.handler.loadAd(this.activity);
     }
 
 
@@ -108,18 +99,19 @@ public class RewardAdListener extends GenericAdListener implements RewardedVideo
 
     }
 
-    public long getRetry() {
-        return triesFailed;
+
+    public interface RewardListener {
+        void onRewarded(RewardItem reward);
+
+        void onCanceledBeforeReward();
     }
 
-    public boolean shouldLoad() {
-        return this.status != AdStatus.LOADED && this.status != AdStatus.LOADING && (this.status != AdStatus.FAILED || (System.currentTimeMillis() - this.lastFailTimestamp) > this.retryInterval * this.triesFailed);
-    }
+    public static abstract class AlwaysAcceptRewardListener implements RewardListener {
 
-
-    public interface VideoRewardListener {
-        void onVideoWatched(RewardItem reward);
-
+        @Override
+        public void onCanceledBeforeReward() {
+            onRewarded(null);
+        }
     }
 
 
