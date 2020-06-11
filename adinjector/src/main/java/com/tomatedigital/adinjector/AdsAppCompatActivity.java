@@ -66,7 +66,7 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
     private long busyAdStartDisplayAt;
 
 
-    private static RewardAdHandler rewardHandler;
+    private static RewardAdHandler rewardVideoHandler;
     private static IntertitialAdHandler intertitialAdHandler;
 
     private boolean bannerAdOn;
@@ -93,36 +93,36 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
     }
 
 
-    protected boolean showAdOrMiss(@NonNull final RewardAdListener.RewardListener rewardListener, @Nullable final RewardItem reward, @NonNull GenericAdListener.AdType preference) {
+    public boolean showAdOrMiss(@NonNull final RewardAdListener.RewardListener rewardListener, @Nullable final RewardItem reward, @NonNull GenericAdListener.AdType preference) {
 
-        if (preference == GenericAdListener.AdType.REWARD_VIDEO && rewardHandler.isAdReady()) {
-            rewardHandler.showAd(rewardListener);
+        ShowableAdHandler handler = getShowableAdHandler(preference, false);
+
+        if (handler.isAdReady()) {
+            handler.showAd(rewardListener);
             return true;
-        } else if (intertitialAdHandler.isAdReady()) {
-            intertitialAdHandler.showAd(rewardListener);
-            return true;
-        } else {
+        } else
             rewardListener.onRewarded(reward);
-            return false;
-        }
+
+        return false;
     }
 
-    private ShowableAdHandler getShowableAdHandler(@Nullable GenericAdListener.AdType preference) {
+    private ShowableAdHandler getShowableAdHandler(@Nullable final GenericAdListener.AdType preference, final boolean force) {
         ShowableAdHandler handler;
 
-        if (preference != GenericAdListener.AdType.REWARD_VIDEO || System.currentTimeMillis() - rewardHandler.getLastRewardTimestamp() < this.minRewardVideoInterval())
+        if (preference != GenericAdListener.AdType.REWARD_VIDEO || (!force && System.currentTimeMillis() - rewardVideoHandler.getLastRewardTimestamp() < this.minRewardVideoInterval()))
             handler = intertitialAdHandler;
         else
-            handler = rewardHandler;
+            handler = rewardVideoHandler;
 
 
         return handler;
     }
 
 
-    protected void showAdOrLoad(@NonNull final RewardAdListener.RewardListener rewardListener, @Nullable final RewardItem reward, @Nullable GenericAdListener.AdType preference) {
 
-        ShowableAdHandler handler = getShowableAdHandler(preference);
+    public void showAdOrLoad(@NonNull final RewardAdListener.RewardListener rewardListener, @Nullable final RewardItem reward, @Nullable GenericAdListener.AdType preference) {
+
+        ShowableAdHandler handler = getShowableAdHandler(preference, true);
 
         if (handler.isAdReady())
             handler.showAd(rewardListener);
@@ -147,7 +147,7 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
                         if (handler.isAdReady())
                             handler.showAd(rewardListener);
                         else
-                            rewardListener.onRewarded(reward);
+                            showAdOrMiss(rewardListener, reward, preference);
                     } catch (Exception e) {
                         FirebaseCrashlytics.getInstance().recordException(e);
                     }
@@ -166,6 +166,7 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
             super.onBackPressed();
     }
 
+    @SuppressWarnings("ConstantConditions")
     @Override
     public void onRestoreInstanceState(@Nullable Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
@@ -204,8 +205,8 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
         if (this.busyHandler != null)
             this.busyHandler.pause(this);
 
-        if (rewardHandler != null)
-            rewardHandler.pause(this);
+        if (rewardVideoHandler != null)
+            rewardVideoHandler.pause(this);
 
         super.onPause();
     }
@@ -220,8 +221,8 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
         if (this.busyHandler != null)
             this.busyHandler.resume(this);
 
-        if (rewardHandler != null)
-            rewardHandler.resume(this);
+        if (rewardVideoHandler != null)
+            rewardVideoHandler.resume(this);
     }
 
 
@@ -349,8 +350,8 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
 
 
     private void createHandlers() {
-        if (rewardHandler == null && showRewardedVideoAd())
-            rewardHandler = new RewardAdHandler(this, this.getRewardAdUnit(), waitBeforeRetryLoadAd(), keywords);
+        if (rewardVideoHandler == null && showRewardedVideoAd())
+            rewardVideoHandler = new RewardAdHandler(this, this.getRewardAdUnit(), waitBeforeRetryLoadAd(), keywords);
 
         if (intertitialAdHandler == null && showIntertitialAd())
             intertitialAdHandler = new IntertitialAdHandler(this, getInterstitialAdUnit(), waitBeforeRetryLoadAd(), keywords);
