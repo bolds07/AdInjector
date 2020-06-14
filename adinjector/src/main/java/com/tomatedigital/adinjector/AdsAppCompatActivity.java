@@ -93,25 +93,28 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
     }
 
 
-    public boolean showAdOrMiss(@NonNull final RewardAdListener.RewardListener rewardListener, @Nullable final RewardItem reward, @NonNull GenericAdListener.AdType preference) {
+    public boolean showAdOrMiss(@NonNull final RewardAdListener.RewardListener rewardListener, @Nullable final RewardItem reward, @Nullable GenericAdListener.AdType preference) {
 
         ShowableAdHandler handler = getShowableAdHandler(preference, false);
 
-        if (handler.isAdReady()) {
-            handler.showAd(rewardListener);
-            return true;
-        } else
+        if (handler == null || !handler.isAdReady()) {
             rewardListener.onRewarded(reward);
+            return false;
+        } else
+            handler.showAd(rewardListener);
 
-        return false;
+        return true;
+
+
     }
 
+    @Nullable
     private ShowableAdHandler getShowableAdHandler(@Nullable final GenericAdListener.AdType preference, final boolean force) {
-        ShowableAdHandler handler;
+        ShowableAdHandler handler = null;
 
-        if (preference != GenericAdListener.AdType.REWARD_VIDEO || (!force && System.currentTimeMillis() - rewardVideoHandler.getLastRewardTimestamp() < this.minRewardVideoInterval()))
+        if (showIntertitialAd() && (preference != GenericAdListener.AdType.REWARD_VIDEO || (!force && System.currentTimeMillis() - rewardVideoHandler.getLastRewardTimestamp() < this.minRewardVideoInterval())))
             handler = intertitialAdHandler;
-        else
+        else if (showRewardedVideoAd())
             handler = rewardVideoHandler;
 
 
@@ -119,12 +122,21 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
     }
 
 
-
+    /**
+     * dont show ad case has no ads
+     *
+     * @param rewardListener
+     * @param reward
+     * @param preference
+     */
     public void showAdOrLoad(@NonNull final RewardAdListener.RewardListener rewardListener, @Nullable final RewardItem reward, @Nullable GenericAdListener.AdType preference) {
 
         ShowableAdHandler handler = getShowableAdHandler(preference, true);
 
-        if (handler.isAdReady())
+        if (handler == null)
+            rewardListener.onRewarded(reward);
+
+        else if (handler.isAdReady())
             handler.showAd(rewardListener);
 
         else {
@@ -160,10 +172,9 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
 
     @Override
     public void onBackPressed() {
-        if (showIntertitialAd())
+
             showAdOrMiss(new OnBackPressededReward(), null, GenericAdListener.AdType.INTERSTITIAL);
-        else
-            super.onBackPressed();
+
     }
 
     @SuppressWarnings("ConstantConditions")
@@ -226,7 +237,8 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
     }
 
 
-    public boolean unlockPermissions(@NonNull final String permission, final int requestorCode, @Nullable final String explanationDialog) {
+    public boolean unlockPermissions(@NonNull final String permission,
+                                     final int requestorCode, @Nullable final String explanationDialog) {
 
 
         if (Build.VERSION.SDK_INT > 18 && ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
@@ -433,7 +445,8 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
         if (requestCode == CODE_REQUEST_GPS && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED)
             loadGpsLocation();
 
@@ -540,7 +553,7 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
 
         @Override
         public void onRewarded(RewardItem reward) {
-            AdsAppCompatActivity.super.onBackPressed();
+            finish();
         }
     }
 
