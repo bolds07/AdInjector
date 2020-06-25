@@ -8,6 +8,7 @@ import androidx.annotation.Nullable;
 import com.google.android.gms.ads.reward.RewardItem;
 import com.google.android.gms.ads.reward.RewardedVideoAdListener;
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
+import com.tomatedigital.adinjector.BuildConfig;
 import com.tomatedigital.adinjector.handler.RewardAdHandler;
 
 public class RewardAdListener extends GenericAdListener implements RewardedVideoAdListener {
@@ -19,7 +20,7 @@ public class RewardAdListener extends GenericAdListener implements RewardedVideo
 
     private long lastRewardTimestamp;
 
-    private boolean wasLastAdCanceled;
+
 
     public RewardAdListener(@NonNull final Activity activity, @NonNull final RewardAdHandler handler, @NonNull final String adunit, final long retryInterval) {
         super(activity, adunit, handler, REWARD, retryInterval);
@@ -60,13 +61,13 @@ public class RewardAdListener extends GenericAdListener implements RewardedVideo
         //super.onAdClosed(); does nothing
         FirebaseCrashlytics.getInstance().log("ad: " + this.getAdUnit() + " closed");
         if (this.rewardListener != null) {
-            if (this.status == AdStatus.REWARDED)
+            if (this.status == AdStatus.REWARDED || BuildConfig.DEBUG)
                 this.rewardListener.onRewarded(this.lastReward);
             else
                 this.rewardListener.onCanceledBeforeReward();
         }
 
-        this.wasLastAdCanceled = this.status != AdStatus.REWARDED;
+
 
         this.handler.loadAd();
 

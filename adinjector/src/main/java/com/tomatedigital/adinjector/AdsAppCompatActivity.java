@@ -439,7 +439,8 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
                 this.busyHandler.hideAd();
 
 
-            this.busyHandler.loadAd(this);
+            //todo testando
+            //this.busyHandler.loadAd(this);
         }
 
     }

@@ -41,16 +41,18 @@ public class ResizableBannerAdListener extends GenericAdListener {
         this.adHandler.resize();
     }
 
+    /*
+        //this method never is called for banners
+        @Override
+        public void onAdClosed() {
+            //   super.onAdClosed(); does nothing
 
-    @Override
-    public void onAdClosed() {
-        //   super.onAdClosed(); does nothing
-
-        this.status = AdStatus.EMPTY;
-        ((ResizableBannerAdHandler) this.handler).loadAd(this.activity);
+            this.status = AdStatus.EMPTY;
+           // ((ResizableBannerAdHandler) this.handler).loadAd(this.activity);
 
 
-    }
+        }
+    */
 
     @Override
     public void onAdOpened() {
