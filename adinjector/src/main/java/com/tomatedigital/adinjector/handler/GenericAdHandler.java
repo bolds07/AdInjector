@@ -22,7 +22,6 @@ public abstract class GenericAdHandler {
 
 
     @MainThread
-
     public boolean loadAd() {
 
 

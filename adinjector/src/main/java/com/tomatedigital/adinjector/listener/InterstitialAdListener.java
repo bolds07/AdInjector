@@ -26,8 +26,8 @@ public class InterstitialAdListener extends GenericAdListener {
     private long openTime;
     private RewardAdListener.RewardListener rewardListener;
 
-    public InterstitialAdListener(@NonNull final Activity context, @NonNull final String adUnit, @NonNull final IntertitialAdHandler handler, final long retryInterval) {
-        super(context, adUnit, handler, INTERTITIAL, retryInterval);
+    public InterstitialAdListener(@NonNull final Activity context, @NonNull final String adUnit, @NonNull final String adUser,@NonNull final IntertitialAdHandler handler, final long retryInterval) {
+        super(context, adUnit,adUser, handler, INTERTITIAL, retryInterval);
 
 
     }

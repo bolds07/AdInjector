@@ -12,12 +12,12 @@ public class ResizableBannerAdListener extends GenericAdListener {
 
     private final long refreshInterval;
     private final ResizableBannerAdHandler adHandler;
-    private int minShowCount;
+    private final int minShowCount;
     private int showCount;
 
 
-    public ResizableBannerAdListener(@NonNull final Activity activity, @NonNull final String adunit, @NonNull final AdSize size, @NonNull final ResizableBannerAdHandler handler, final long refreshInterval, final int minShowCount) {
-        super(activity, adunit, handler, size, 0L);
+    public ResizableBannerAdListener(@NonNull final Activity activity, @NonNull final String adunit, @NonNull final String adUser, @NonNull final AdSize size, @NonNull final ResizableBannerAdHandler handler, final long refreshInterval, final int minShowCount, final long retryInterval) {
+        super(activity, adunit, adUser, handler, size, retryInterval);
         this.refreshInterval = refreshInterval;
         this.minShowCount = minShowCount;
 
@@ -37,8 +37,8 @@ public class ResizableBannerAdListener extends GenericAdListener {
 
     @Override
     public void onAdFailedToLoad(int i) {
-        super.onAdFailedToLoad(i);
         this.adHandler.resize();
+        super.onAdFailedToLoad(i);
     }
 
     /*
@@ -62,6 +62,6 @@ public class ResizableBannerAdListener extends GenericAdListener {
 
     @Override
     public boolean shouldLoad() {
-        return !this.activity.isFinishing() && (this.status == AdStatus.EMPTY || this.status == AdStatus.FAILED || (this.showCount >= this.minShowCount && System.currentTimeMillis() - this.getLastLoadTimestamp() > this.refreshInterval));
+        return !this.activity.isFinishing() && (this.status == AdStatus.EMPTY || (this.status == AdStatus.FAILED && System.currentTimeMillis() - this.lastFailTimestamp > this.retryInterval * this.triesFailed) || (this.showCount >= this.minShowCount && System.currentTimeMillis() - this.getLastLoadTimestamp() > this.refreshInterval));
     }
 }

@@ -21,13 +21,13 @@ public class IntertitialAdHandler extends ShowableAdHandler {
     private final InterstitialAd interstitialAd;
 
 
-    public IntertitialAdHandler(@NonNull final Activity activity, @NonNull final String adunit, final long waitBeforeRetryLoadAd, @NonNull final String[] keywords) {
+    public IntertitialAdHandler(@NonNull final Activity activity, @NonNull final String adunit,@NonNull final String adUser, final long waitBeforeRetryLoadAd, @NonNull final String[] keywords) {
         super(keywords);
 
 
         this.interstitialAd = new InterstitialAd(activity);
         this.interstitialAd.setAdUnitId(adunit);
-        this.listener = new InterstitialAdListener(activity, adunit, this, waitBeforeRetryLoadAd);
+        this.listener = new InterstitialAdListener(activity, adunit,adUser, this, waitBeforeRetryLoadAd);
         this.interstitialAd.setAdListener(this.listener);
         this.interstitialAd.setImmersiveMode(true);
 

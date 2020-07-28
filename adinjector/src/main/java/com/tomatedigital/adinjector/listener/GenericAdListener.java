@@ -31,14 +31,16 @@ public abstract class GenericAdListener extends AdListener {
     private long lastLoadTimestamp;
     private int clicks;
 
+    private final String adUser;
 
-    GenericAdListener(@NonNull final Activity context, @NonNull final String adUnit, @NonNull final GenericAdHandler handler, @NonNull final AdSize size, final long retryInterval) {
+
+    GenericAdListener(@NonNull final Activity context, @NonNull final String adUnit, @NonNull String adUserId, @NonNull final GenericAdHandler handler, @NonNull final AdSize size, final long retryInterval) {
         this.adUnit = adUnit;
         this.activity = context;
         this.size = size;
         this.handler = handler;
         this.retryInterval = retryInterval;
-
+        this.adUser = adUserId;
         this.status = AdStatus.EMPTY;
         this.triesFailed = 0;
         this.lastFailTimestamp = 0;
@@ -79,7 +81,6 @@ public abstract class GenericAdListener extends AdListener {
     }
 
 
-
     public AdStatus getStatus() {
         return this.status;
     }
@@ -104,8 +105,9 @@ public abstract class GenericAdListener extends AdListener {
 
         b.putString("ad_unit", this.adUnit);
         b.putInt("retries", ++this.triesFailed);
+        b.putString("ad_user", this.adUser);
         if (this.lastFailTimestamp > 0)
-            b.putLong("failInterval", System.currentTimeMillis() - this.lastFailTimestamp);
+            b.putLong("last_error_interval", System.currentTimeMillis() - this.lastFailTimestamp);
 
 
         int sizeCode = 0;

@@ -23,16 +23,17 @@ public class ResizableBannerAdHandler extends GenericAdHandler {
 
 
     //actually it just get smaller, i will need this if i want to enlarge in future
+    @SuppressWarnings("FieldCanBeLocal")
     private final AdSize maxSize;
 
 
-    public ResizableBannerAdHandler(@NonNull AdView initialAd, long busyRefreshInterval, int minBusyShowTimes, @NonNull String[] keywords) {
+    public ResizableBannerAdHandler(@NonNull AdView initialAd, @NonNull final String adUser, long busyRefreshInterval, int minBusyShowTimes, long retryInterval, @NonNull String[] keywords) {
         super(keywords);
         this.maxSize = initialAd.getAdSize();
         this.adView = initialAd;
 
         this.activity = (Activity) initialAd.getContext();
-        this.listener = new ResizableBannerAdListener(this.activity, initialAd.getAdUnitId(), this.maxSize, this, busyRefreshInterval, minBusyShowTimes);
+        this.listener = new ResizableBannerAdListener(this.activity, initialAd.getAdUnitId(),adUser, this.maxSize, this, busyRefreshInterval, minBusyShowTimes,retryInterval);
         this.adView.setAdListener(this.listener);
 
         this.loadAd(this.activity);
@@ -120,12 +121,13 @@ public class ResizableBannerAdHandler extends GenericAdHandler {
     }
 
 
-    public void changeContainer(@NonNull ViewGroup container) {
+    public void changeContainer(@NonNull final ViewGroup container,@NonNull final Activity activity) {
         try {
             ViewGroup.LayoutParams layoutParams = this.adView.getLayoutParams();
             ((ViewGroup) this.adView.getParent()).removeView(this.adView);
             container.addView(this.adView);
             this.adView.setLayoutParams(layoutParams);
+            this.loadAd(activity);
         } catch (Exception e) {
             //monitore
             FirebaseCrashlytics.getInstance().recordException(e);

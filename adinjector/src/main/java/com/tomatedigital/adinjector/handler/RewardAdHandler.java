@@ -22,13 +22,13 @@ public class RewardAdHandler extends ShowableAdHandler {
     private int videoAdCount;
 
 
-    public RewardAdHandler(@NonNull final Activity activity, @NonNull final String reward_ad_unit_id, final long waitForRetry, @NonNull final String[] keywords) {
+    public RewardAdHandler(@NonNull final Activity activity, @NonNull final String reward_ad_unit_id,@NonNull final String adUser, final long waitForRetry, @NonNull final String[] keywords) {
         super(keywords);
 
 
         this.rewardAdUnitId = reward_ad_unit_id;
         this.rewardedVideoAd = MobileAds.getRewardedVideoAdInstance(activity);
-        this.listener = new RewardAdListener(activity, this, reward_ad_unit_id, waitForRetry);
+        this.listener = new RewardAdListener(activity, this, reward_ad_unit_id,adUser, waitForRetry);
         this.rewardedVideoAd.setRewardedVideoAdListener((RewardedVideoAdListener) this.listener);
         this.rewardedVideoAd.setImmersiveMode(true);
 

@@ -22,8 +22,8 @@ public class RewardAdListener extends GenericAdListener implements RewardedVideo
 
 
 
-    public RewardAdListener(@NonNull final Activity activity, @NonNull final RewardAdHandler handler, @NonNull final String adunit, final long retryInterval) {
-        super(activity, adunit, handler, REWARD, retryInterval);
+    public RewardAdListener(@NonNull final Activity activity, @NonNull final RewardAdHandler handler,@NonNull final String adUser, @NonNull final String adunit, final long retryInterval) {
+        super(activity, adunit,adUser, handler, REWARD, retryInterval);
     }
 
     public long getLastRewardTimestamp() {
