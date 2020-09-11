@@ -13,8 +13,8 @@ import com.google.android.gms.ads.RequestConfiguration;
 public class AdMobRequestUtil {
 
     static {
-        MobileAds.setAppMuted(true);
-        //MobileAds.setAppVolume(0f);
+        //MobileAds.setAppMuted(true); // Note: Video ads that are ineligible to be shown with muted audio are not returned for ad requests made when the app volume is reported as muted or set to a value of 0. This may restrict a subset of the broader video ads pool from serving.
+        MobileAds.setAppVolume(0.4f);
         MobileAds.setRequestConfiguration(MobileAds.getRequestConfiguration()
                 .toBuilder()
                 .setMaxAdContentRating(RequestConfiguration.MAX_AD_CONTENT_RATING_MA)
