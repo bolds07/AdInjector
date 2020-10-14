@@ -255,7 +255,7 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
 
             if (Build.VERSION.SDK_INT > 23 && alreadyAsked && tmp && explanationDialog != null && isValid()) {
                 runOnUiThread(() -> {
-                    new AlertDialog.Builder(this).setTitle(R.string.permission_necessary_to_continue).setMessage(explanationDialog).setCancelable(false).setPositiveButton(R.string.go_to_settings, (d, which) -> {
+                    new AlertDialog.Builder(this).setTitle(R.string.permission_required).setMessage(explanationDialog).setCancelable(false).setPositiveButton(R.string.go_to_settings, (d, which) -> {
                         Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
                         Uri uri = Uri.fromParts("package", getPackageName(), null);
                         intent.setData(uri);

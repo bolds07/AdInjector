@@ -2,5 +2,5 @@
 <resources>
     <string name="loading">Cargando</string>
     <string name="go_to_settings">Abrir configuraciones</string>
-    <string name="permission_necessary_to_continue">Permiso Requerido</string>
+    <string name="permission_required">Permiso Requerido</string>
 </resources>
