@@ -7,7 +7,6 @@ import androidx.annotation.NonNull;
 
 import com.google.android.gms.ads.AdListener;
 import com.google.android.gms.ads.AdSize;
-import com.google.android.gms.ads.LoadAdError;
 import com.google.firebase.analytics.FirebaseAnalytics;
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
 import com.tomatedigital.adinjector.handler.GenericAdHandler;
@@ -57,7 +56,7 @@ public abstract class GenericAdListener extends AdListener {
      * Error Code 2 : ERROR_CODE_NETWORK_ERROR
      * Error Code 3 : ERROR_CODE_NO_FILL
      */
-    public void onAdFailedToLoad(LoadAdError i) {
+    public void onAdFailedToLoad(int i) {
 
         logError(i, this.size);
         this.status = AdStatus.FAILED;
@@ -101,10 +100,10 @@ public abstract class GenericAdListener extends AdListener {
         return this.adUnit;
     }
 
-    private void logError(final LoadAdError i, @NonNull final AdSize size) {
+    private void logError(final int i, @NonNull final AdSize size) {
         Bundle b = new Bundle();
-        b.putInt("error_code", i.getCode());
-        b.putString("error_message", i.getMessage());
+        b.putInt("error_code", i);
+//        b.putString("error_message", i.getMessage());
 
         b.putString("ad_unit", this.adUnit);
         b.putInt("retries", ++this.triesFailed);

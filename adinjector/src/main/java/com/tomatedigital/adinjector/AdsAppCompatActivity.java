@@ -261,7 +261,6 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
                         intent.setData(uri);
                         startActivityForResult(intent, requestorCode);
                         requestingPermissions.remove(permission);
-
                     }).show();
                 });
             } else if (tmp && !isFinishing() && !isDestroyed()) {
