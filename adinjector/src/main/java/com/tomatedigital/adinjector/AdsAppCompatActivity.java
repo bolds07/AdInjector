@@ -2,9 +2,12 @@ package com.tomatedigital.adinjector;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -33,8 +36,13 @@ import androidx.preference.PreferenceManager;
 import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.reward.RewardItem;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.tasks.CancellationToken;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.OnTokenCanceledListener;
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
 import com.tomatedigital.adinjector.handler.IntertitialAdHandler;
 import com.tomatedigital.adinjector.handler.ResizableBannerAdHandler;
@@ -471,8 +479,22 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
     @SuppressLint("MissingPermission")
     protected void loadGpsLocation() {
 
-        if (unlockPermissions(Manifest.permission.ACCESS_FINE_LOCATION, CODE_REQUEST_GPS, null) || unlockPermissions(Manifest.permission.ACCESS_COARSE_LOCATION, CODE_REQUEST_GPS, null))
+        if (unlockPermissions(Manifest.permission.ACCESS_FINE_LOCATION, CODE_REQUEST_GPS, null) || unlockPermissions(Manifest.permission.ACCESS_COARSE_LOCATION, CODE_REQUEST_GPS, null)) {
+            LocationRequest tmp = LocationRequest.create();
+            tmp.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+            tmp.setInterval(0L);
+            tmp.setFastestInterval(0L);
+            tmp.setExpirationDuration(30000L);
+            LocationServices.getFusedLocationProviderClient(this).requestLocationUpdates(tmp, new LocationCallback() {
+                @Override
+                public void onLocationResult(@NonNull LocationResult locationResult) {
+                    onSuccess(locationResult.getLastLocation());
+                    LocationServices.getFusedLocationProviderClient(AdsAppCompatActivity.this).removeLocationUpdates(this);
+                }
+            }, getMainLooper());
+
             LocationServices.getFusedLocationProviderClient(this).getLastLocation().addOnSuccessListener(this);
+        }
     }
 
     private void injectBannerAd(int height) {
