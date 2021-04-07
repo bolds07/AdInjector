@@ -2,12 +2,9 @@ package com.tomatedigital.adinjector;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
-import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
-import android.location.LocationListener;
-import android.location.LocationManager;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -40,9 +37,7 @@ import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.tasks.CancellationToken;
 import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.android.gms.tasks.OnTokenCanceledListener;
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
 import com.tomatedigital.adinjector.handler.IntertitialAdHandler;
 import com.tomatedigital.adinjector.handler.ResizableBannerAdHandler;
@@ -59,7 +54,7 @@ import java.util.Set;
 public abstract class AdsAppCompatActivity extends AppCompatActivity implements ViewTreeObserver.OnGlobalLayoutListener, OnSuccessListener<Location> {
 
     private static final int CODE_REQUEST_GPS = 25471;
-    private static final long MIN_BUSY_TIME = 3000;
+
 
 
     private static Location loc;
@@ -253,6 +248,7 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
 
 
     public boolean unlockPermissions(@NonNull final String permission, final int requestorCode, @Nullable final String explanationDialog) {
+
 
 
         if (Build.VERSION.SDK_INT > 18 && ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
