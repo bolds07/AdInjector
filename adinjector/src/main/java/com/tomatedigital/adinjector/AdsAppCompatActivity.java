@@ -37,7 +37,9 @@ import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.tasks.CancellationToken;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.OnTokenCanceledListener;
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
 import com.tomatedigital.adinjector.handler.IntertitialAdHandler;
 import com.tomatedigital.adinjector.handler.ResizableBannerAdHandler;
@@ -54,7 +56,6 @@ import java.util.Set;
 public abstract class AdsAppCompatActivity extends AppCompatActivity implements ViewTreeObserver.OnGlobalLayoutListener, OnSuccessListener<Location> {
 
     private static final int CODE_REQUEST_GPS = 25471;
-
 
 
     private static Location loc;
@@ -248,7 +249,6 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
 
 
     public boolean unlockPermissions(@NonNull final String permission, final int requestorCode, @Nullable final String explanationDialog) {
-
 
 
         if (Build.VERSION.SDK_INT > 18 && ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
@@ -481,13 +481,27 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
             tmp.setInterval(0L);
             tmp.setFastestInterval(0L);
             tmp.setExpirationDuration(30000L);
-            LocationServices.getFusedLocationProviderClient(this).requestLocationUpdates(tmp, new LocationCallback() {
+            LocationServices.getFusedLocationProviderClient(this).getCurrentLocation(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY, new CancellationToken() {
                 @Override
-                public void onLocationResult(@NonNull LocationResult locationResult) {
-                    onSuccess(locationResult.getLastLocation());
-                    LocationServices.getFusedLocationProviderClient(AdsAppCompatActivity.this).removeLocationUpdates(this);
+                public boolean isCancellationRequested() {
+                    return false;
                 }
-            }, getMainLooper());
+
+                @NonNull
+                @Override
+                public CancellationToken onCanceledRequested(@NonNull OnTokenCanceledListener onTokenCanceledListener) {
+                    return this;
+                }
+            }).addOnSuccessListener(this);
+
+//            LocationServices.getFusedLocationProviderClient(this).requestLocationUpdates(tmp, new LocationCallback() {
+//                @Override
+//                public void onLocationResult(@NonNull LocationResult locationResult) {
+//                    System.out.println("b");
+//                    onSuccess(locationResult.getLastLocation());
+//                    LocationServices.getFusedLocationProviderClient(AdsAppCompatActivity.this).removeLocationUpdates(this);
+//                }
+//            }, getMainLooper());
 
             LocationServices.getFusedLocationProviderClient(this).getLastLocation().addOnSuccessListener(this);
         }
