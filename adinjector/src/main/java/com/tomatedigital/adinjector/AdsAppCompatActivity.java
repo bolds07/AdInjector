@@ -38,8 +38,10 @@ import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.CancellationToken;
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.OnTokenCanceledListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
 import com.tomatedigital.adinjector.handler.IntertitialAdHandler;
 import com.tomatedigital.adinjector.handler.ResizableBannerAdHandler;
@@ -481,7 +483,7 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
             tmp.setInterval(0L);
             tmp.setFastestInterval(0L);
             tmp.setExpirationDuration(30000L);
-            LocationServices.getFusedLocationProviderClient(this).getCurrentLocation(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY, new CancellationToken() {
+            LocationServices.getFusedLocationProviderClient(this).getCurrentLocation(LocationRequest.PRIORITY_HIGH_ACCURACY, new CancellationToken() {
                 @Override
                 public boolean isCancellationRequested() {
                     return false;
@@ -503,7 +505,12 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
 //                }
 //            }, getMainLooper());
 
-            LocationServices.getFusedLocationProviderClient(this).getLastLocation().addOnSuccessListener(this);
+            LocationServices.getFusedLocationProviderClient(this).getLastLocation().addOnCompleteListener(task -> {
+                if (task.isSuccessful())
+                    this.onSuccess(task.getResult());
+                else
+                    this.onSuccess(null);
+            });
         }
     }
 
