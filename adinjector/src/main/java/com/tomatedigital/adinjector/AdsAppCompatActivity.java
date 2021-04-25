@@ -49,6 +49,7 @@ import com.tomatedigital.adinjector.handler.RewardAdHandler;
 import com.tomatedigital.adinjector.handler.ShowableAdHandler;
 import com.tomatedigital.adinjector.listener.GenericAdListener;
 import com.tomatedigital.adinjector.listener.RewardAdListener;
+import com.tomatedigital.androidutils.ThreadPool;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -157,7 +158,8 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
             final long startTime = System.currentTimeMillis();
             handler.loadAd();
 
-            AsyncTask.THREAD_POOL_EXECUTOR.execute(() -> {
+
+            ThreadPool.run(() -> {
                 while (!handler.isAdReady() && System.currentTimeMillis() - startTime < maxLoadVideoAdDuration()) {
 
                     try {
@@ -423,7 +425,7 @@ public abstract class AdsAppCompatActivity extends AppCompatActivity implements 
             showBusyView(b);
 
         } else {
-            AsyncTask.THREAD_POOL_EXECUTOR.execute(() -> {
+            ThreadPool.run(() -> {
                 long waitTime = getBusyDefaultDuration() - System.currentTimeMillis() - this.busyAdStartDisplayAt;
                 if (waitTime > 0)
                     try {
