@@ -51,10 +51,10 @@ public abstract class GenericAdListener extends AdListener {
 
 
     @Override
-    /**
-     * Error Code 1 : ERROR_CODE_INVALID_REQUEST
-     * Error Code 2 : ERROR_CODE_NETWORK_ERROR
-     * Error Code 3 : ERROR_CODE_NO_FILL
+    /*
+      Error Code 1 : ERROR_CODE_INVALID_REQUEST
+      Error Code 2 : ERROR_CODE_NETWORK_ERROR
+      Error Code 3 : ERROR_CODE_NO_FILL
      */
     public void onAdFailedToLoad(int i) {
 
